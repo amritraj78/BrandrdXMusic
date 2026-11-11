@@ -1,5 +1,6 @@
 
 import math
+import config
 from BrandrdXMusic import app
 
 from pyrogram.enums import ButtonStyle

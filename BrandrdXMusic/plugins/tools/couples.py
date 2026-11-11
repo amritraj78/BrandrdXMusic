@@ -11,6 +11,7 @@ from pyrogram import *
 from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 from pyrogram.enums import ChatType, ParseMode
 
+import config
 # BOT FILE NAME
 from BrandrdXMusic import app as app
 from BrandrdXMusic.mongo.couples_db import _get_image, get_couple
