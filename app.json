@@ -1,15 +1,15 @@
 {
-  "name": "𝐁𝐫𝐚𝐧𝐝𝐫𝐝 𝐗 𝐌𝐮𝐬𝐢𝐜",
-  "description": "A Telegram Music Player Bot, written in Python with Pyrogram and Py-Tgcalls.",
-  "logo": "https://te.legra.ph/file/62fa7c81c56c1ae31c844.jpg",
+  "name": "BrandrdXMusic",
+  "description": "Telegram Music Player Bot with voice chat streaming, memory cleaner, and 24x7 Koyeb support.",
+  "logo": "https://imgdb.io/i/O3m-KbU.jpg",
   "keywords": [
     "python3",
     "telegram",
     "bot",
-    "Brandrd",
     "MusicBot",
     "telegram-bot",
-    "pyrogram"
+    "pyrogram",
+    "koyeb"
   ],
   "env": {
     "API_ID": {
@@ -23,61 +23,50 @@
       "required": true
     },
     "BOT_TOKEN": {
-      "description": "A Bot's token from BotFather",
+      "description": "A Bot's token from @BotFather on Telegram",
       "value": "",
       "required": true
     },
     "MONGO_DB_URI": {
-      "description": "Get a MongoDB URL from https://cloud.mongodb.com.",
+      "description": "Get a MongoDB URL from https://cloud.mongodb.com",
       "value": "",
       "required": true
     },
     "OWNER_ID": {
-      "description": "The user ID of the person you would like to add as OWNER.",
-      "value": "",
+      "description": "The user ID of the owner.",
+      "value": "7576534973",
       "required": true
+    },
+    "OWNER_USERNAME": {
+      "description": "The Telegram username of the owner.",
+      "value": "ex_amrit",
+      "required": false
     },
     "STRING_SESSION": {
-      "description": "A Pyrogram v2 String Session from @BRANDEDSTRINGSESSION_BOT on Telegram.",
+      "description": "A Pyrogram v2 String Session for assistant account.",
       "value": "",
       "required": true
-    },
-    "HEROKU_API_KEY": {
-      "description": "Your Heroku account's API key",
-      "value": "",
-      "required": false
-    },
-    "HEROKU_APP_NAME": {
-      "description": "Your Heroku app name",
-      "value": "",
-      "required": false
     },
     "LOGGER_ID": {
-      "description": "Your Log Group ID. Add your bot and promote it as an admin with full rights. Don't add a channel ID.",
-      "value": "",
+      "description": "Your Log Group ID (e.g. -1004478038866). Promote bot and assistant as admin.",
+      "value": "-1004478038866",
       "required": true
     },
-    "API_URL": {
-      "description": "Get your API URL from @I_feeling_like_king on Telegram.",
-      "value": "",
-      "required": true
+    "SUPPORT_CHAT": {
+      "description": "Support group link",
+      "value": "https://t.me/amrit_feel",
+      "required": false
     },
-    "API_KEY": {
-      "description": "Get the API key from @I_feeling_like_king on Telegram.",
-      "value": "",
-      "required": true
+    "SUPPORT_CHANNEL": {
+      "description": "Updates channel link",
+      "value": "https://t.me/privatethink",
+      "required": false
+    },
+    "PORT": {
+      "description": "Port for Koyeb Web Service healthchecks",
+      "value": "8000",
+      "required": false
     }
   },
-  "buildpacks": [
-    {
-      "url": "heroku/python"
-    },
-    {
-      "url": "heroku/nodejs"
-    },
-    {
-      "url": "https://github.com/jonathanong/heroku-buildpack-ffmpeg-latest.git"
-    }
-  ],
   "stack": "container"
-    }
+}

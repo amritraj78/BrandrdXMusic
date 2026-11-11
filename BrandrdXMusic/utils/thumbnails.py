@@ -1,4 +1,3 @@
-#https://github.com/WCGKING/BrandrdXMusic
 
 import os
 from io import BytesIO

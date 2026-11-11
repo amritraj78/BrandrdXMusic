@@ -304,8 +304,8 @@ async def greet_group(_, member: ChatMemberUpdated):
             f"๏ 𝗜'𝗗 ➠ <code>{user.id}</code>\n"
             f"๏ 𝗨𝗦𝗘𝗥𝗡𝗔𝗠𝗘 ➠ {username}\n"
             f"๏ 𝗠𝗔𝗗𝗘 𝗕𝗬 ➠ "
-            f"<a href=\"https://t.me/BRANDEDKING8\">"
-            f"Bʀᴀɴᴅᴇᴅ Kɪɴɢ 📿</a>\n"
+            f"<a href=\"https://t.me/{config.OWNER_USERNAME}\">"
+            f"@{config.OWNER_USERNAME} 📿</a>\n"
             f"➖➖➖➖➖➖➖➖"
             f"</blockquote></b>"
         )
@@ -321,11 +321,7 @@ async def greet_group(_, member: ChatMemberUpdated):
                     [
                         InlineKeyboardButton(
                             "⦿ ᴀᴅᴅ ᴍᴇ ⦿",
-                            url=(
-                                "https://t.me/"
-                                "Systumm_music_bot"
-                                "?startgroup=true"
-                            )
+                            url=f"https://t.me/{app.username}?startgroup=true"
                         )
                     ]
                 ]

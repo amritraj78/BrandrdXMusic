@@ -1,4 +1,3 @@
-#https://github.com/WCGKING/BrandrdXMusic
 
 import asyncio
 from pyrogram import filters

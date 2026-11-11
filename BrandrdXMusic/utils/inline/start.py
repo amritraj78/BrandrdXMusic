@@ -1,4 +1,3 @@
-#https://github.com/WCGKING/BrandrdXMusic
 
 import random
 from pyrogram.enums import ButtonStyle

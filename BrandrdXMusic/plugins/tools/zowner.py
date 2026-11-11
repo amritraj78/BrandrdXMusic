@@ -1,47 +1,83 @@
 import asyncio
-
 from pyrogram import Client, filters
+from pyrogram.enums import ParseMode
 from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup, Message
 
+import config
 from BrandrdXMusic import app
+from BrandrdXMusic.misc import SUDOERS
 from BrandrdXMusic.utils.database import add_served_chat, get_assistant
 
 
-@app.on_message(filters.command("repo"))
-async def help(client: Client, message: Message):
-    await message.reply_photo(
-        photo=f"https://telegra.ph/file/1aac9a42f6f35138da34b.jpg",
-        caption=f"""🍁𝐂𝐋𝐈𝐂𝐊🥰𝐁𝐄𝐋𝐎𝐖💝𝐁𝐔𝐓𝐓𝐎𝐍✨𝐓𝐎🙊𝐆𝐄𝐓🌱𝐑𝐄𝐏𝐎🍁""",
-        reply_markup=InlineKeyboardMarkup(
-            [
-                [
-                    InlineKeyboardButton(
-                        "ƨσʋяcɛ", url=f"https://t.me/BRANDED_PAID_CC"
-                    )
-                ]
-            ]
-        ),
+@app.on_message(filters.command(["owner", "developer", "dev"]))
+async def owner_info(client: Client, message: Message):
+    text = (
+        f"👑 <b>ᴏᴡɴᴇʀ ɪɴғᴏʀᴍᴀᴛɪᴏɴ</b>\n\n"
+        f"👤 <b>ᴜsᴇʀɴᴀᴍᴇ :</b> @{config.OWNER_USERNAME}\n"
+        f"🆔 <b>ᴏᴡɴᴇʀ ɪᴅ :</b> <code>{config.OWNER_ID}</code>\n"
+        f"💬 <b>sᴜᴘᴘᴏʀᴛ ɢʀᴏᴜᴘ :</b> <a href=\"{config.SUPPORT_CHAT}\">amrit_feel</a> (<code>{config.SUPPORT_CHAT_ID}</code>)\n"
+        f"📢 <b>ᴜᴘᴅᴀᴛᴇs ᴄʜᴀɴɴᴇʟ :</b> <a href=\"{config.SUPPORT_CHANNEL}\">privatethink</a>\n"
+        f"📸 <b>ɪɴsᴛᴀɢʀᴀᴍ :</b> <a href=\"{config.OWNER_INSTAGRAM}\">{config.OWNER_USERNAME}</a>\n"
+        f"👻 <b>sɴᴀᴘᴄʜᴀᴛ :</b> <a href=\"{config.OWNER_SNAPCHAT}\">{config.OWNER_USERNAME}</a>\n"
     )
+    markup = InlineKeyboardMarkup(
+        [
+            [
+                InlineKeyboardButton("👤 ᴏᴡɴᴇʀ", url=f"https://t.me/{config.OWNER_USERNAME}"),
+                InlineKeyboardButton("💬 sᴜᴘᴘᴏʀᴛ", url=config.SUPPORT_CHAT),
+            ],
+            [
+                InlineKeyboardButton("📢 ᴄʜᴀɴɴᴇʟ", url=config.SUPPORT_CHANNEL),
+            ],
+            [
+                InlineKeyboardButton("📸 ɪɴsᴛᴀɢʀᴀᴍ", url=config.OWNER_INSTAGRAM),
+                InlineKeyboardButton("👻 sɴᴀᴘᴄʜᴀᴛ", url=config.OWNER_SNAPCHAT),
+            ],
+        ]
+    )
+    if message.reply_to_message:
+        await message.reply_to_message.reply_text(text, reply_markup=markup, parse_mode=ParseMode.HTML, disable_web_page_preview=True)
+    else:
+        await message.reply_text(text, reply_markup=markup, parse_mode=ParseMode.HTML, disable_web_page_preview=True)
 
 
-@app.on_message(filters.command("clone"))
+@app.on_message(filters.command(["repo", "source"]))
+async def repo_info(client: Client, message: Message):
+    text = (
+        f"✨ <b>ʙʀᴀɴᴅʀᴅ x ᴍᴜsɪᴄ ʙᴏᴛ</b>\n\n"
+        f"🚀 <b>24×7 Kᴏʏᴇʙ Rᴇᴀᴅʏ & Bᴜɢ-Fʀᴇᴇ</b>\n"
+        f"👤 <b>Oᴡɴᴇʀ :</b> @{config.OWNER_USERNAME}\n"
+        f"💬 <b>Sᴜᴘᴘᴏʀᴛ :</b> <a href=\"{config.SUPPORT_CHAT}\">amrit_feel</a>\n"
+        f"📢 <b>Cʜᴀɴɴᴇʟ :</b> <a href=\"{config.SUPPORT_CHANNEL}\">privatethink</a>\n"
+    )
+    markup = InlineKeyboardMarkup(
+        [
+            [
+                InlineKeyboardButton("👤 ᴏᴡɴᴇʀ", url=f"https://t.me/{config.OWNER_USERNAME}"),
+                InlineKeyboardButton("💬 sᴜᴘᴘᴏʀᴛ", url=config.SUPPORT_CHAT),
+            ],
+            [
+                InlineKeyboardButton("📢 ᴜᴘᴅᴀᴛᴇs ᴄʜᴀɴɴᴇʟ", url=config.SUPPORT_CHANNEL),
+            ],
+        ]
+    )
+    await message.reply_text(text, reply_markup=markup, parse_mode=ParseMode.HTML, disable_web_page_preview=True)
+
+
+@app.on_message(filters.command(["clone"]))
 async def clones(client: Client, message: Message):
-    await message.reply_photo(
-        photo=f"https://telegra.ph/file/1aac9a42f6f35138da34b.jpg",
-        caption=f"""**🙂You Are Not Sudo User So You Are Not Allowed To Clone Me.**\n**😌Click Given Below Button And Host Manually Otherwise Contact Owner Or Sudo Users For Clone.**""",
+    await message.reply_text(
+        f"🙂 <b>Cᴏɴᴛᴀᴄᴛ Oᴡɴᴇʀ @{config.OWNER_USERNAME} ᴛᴏ ʜᴏsᴛ ʏᴏᴜʀ ᴏᴡɴ ᴍᴜsɪᴄ ʙᴏᴛ!</b>",
         reply_markup=InlineKeyboardMarkup(
             [
                 [
-                    InlineKeyboardButton(
-                        "ƨσʋяcɛ", url=f"https://t.me/BRANDED_PAID_CC"
-                    )
+                    InlineKeyboardButton("👤 ᴄᴏɴᴛᴀᴄᴛ ᴏᴡɴᴇʀ", url=f"https://t.me/{config.OWNER_USERNAME}"),
+                    InlineKeyboardButton("💬 sᴜᴘᴘᴏʀᴛ ɢʀᴏᴜᴘ", url=config.SUPPORT_CHAT),
                 ]
             ]
         ),
+        parse_mode=ParseMode.HTML,
     )
-
-
-# --------------------------------------------------------------------------------- #
 
 
 @app.on_message(
@@ -56,22 +92,15 @@ async def bot_check(_, message):
     await add_served_chat(chat_id)
 
 
-# --------------------------------------------------------------------------------- #
-
-
-import asyncio
-
-
-@app.on_message(filters.command("gadd") & filters.user(int(7250012103)))
+@app.on_message(filters.command("gadd") & (filters.user(config.OWNER_ID) | SUDOERS))
 async def add_allbot(client, message):
     command_parts = message.text.split(" ")
     if len(command_parts) != 2:
-        await message.reply(
-            "**⚠️ ɪɴᴠᴀʟɪᴅ ᴄᴏᴍᴍᴀɴᴅ ғᴏʀᴍᴀᴛ. ᴘʟᴇᴀsᴇ ᴜsᴇ ʟɪᴋᴇ » `/gadd @Systumm_music_bot`**"
+        return await message.reply(
+            f"**⚠️ ɪɴᴠᴀʟɪᴅ ᴄᴏᴍᴍᴀɴᴅ ғᴏʀᴍᴀᴛ. ᴘʟᴇᴀsᴇ ᴜsᴇ ʟɪᴋᴇ » `/gadd @{app.username}`**"
         )
-        return
 
-    bot_username = command_parts[1]
+    bot_username = command_parts[1].replace("@", "")
     try:
         userbot = await get_assistant(message.chat.id)
         bot = await app.get_users(bot_username)
@@ -79,38 +108,33 @@ async def add_allbot(client, message):
         done = 0
         failed = 0
         lol = await message.reply("🔄 **ᴀᴅᴅɪɴɢ ɢɪᴠᴇɴ ʙᴏᴛ ɪɴ ᴀʟʟ ᴄʜᴀᴛs!**")
-        await userbot.send_message(bot_username, f"/start")
+        try:
+            await userbot.send_message(bot_username, "/start")
+        except Exception:
+            pass
         async for dialog in userbot.get_dialogs():
-            if dialog.chat.id == -1001754457302:
-                continue
             try:
-
                 await userbot.add_chat_members(dialog.chat.id, app_id)
                 done += 1
-                await lol.edit(
-                    f"**🔂 ᴀᴅᴅɪɴɢ {bot_username}**\n\n**➥ ᴀᴅᴅᴇᴅ ɪɴ {done} ᴄʜᴀᴛs ✅**\n**➥ ғᴀɪʟᴇᴅ ɪɴ {failed} ᴄʜᴀᴛs ❌**\n\n**➲ ᴀᴅᴅᴇᴅ ʙʏ»** @{userbot.username}"
-                )
-            except Exception as e:
+            except Exception:
                 failed += 1
-                await lol.edit(
-                    f"**🔂 ᴀᴅᴅɪɴɢ {bot_username}**\n\n**➥ ᴀᴅᴅᴇᴅ ɪɴ {done} ᴄʜᴀᴛs ✅**\n**➥ ғᴀɪʟᴇᴅ ɪɴ {failed} ᴄʜᴀᴛs ❌**\n\n**➲ ᴀᴅᴅɪɴɢ ʙʏ»** @{userbot.username}"
-                )
-            await asyncio.sleep(3)  # Adjust sleep time based on rate limits
+            await asyncio.sleep(2)
 
         await lol.edit(
-            f"**➻ {bot_username} ʙᴏᴛ ᴀᴅᴅᴇᴅ sᴜᴄᴄᴇssғᴜʟʟʏ🎉**\n\n**➥ ᴀᴅᴅᴇᴅ ɪɴ {done} ᴄʜᴀᴛs ✅**\n**➥ ғᴀɪʟᴇᴅ ɪɴ {failed} ᴄʜᴀᴛs ❌**\n\n**➲ ᴀᴅᴅᴇᴅ ʙʏ»** @{userbot.username}"
+            f"**➻ @{bot_username} ʙᴏᴛ ᴀᴅᴅᴇᴅ sᴜᴄᴄᴇssғᴜʟʟʏ🎉**\n\n"
+            f"**➥ ᴀᴅᴅᴇᴅ ɪɴ {done} ᴄʜᴀᴛs ✅**\n"
+            f"**➥ ғᴀɪʟᴇᴅ ɪɴ {failed} ᴄʜᴀᴛs ❌**\n\n"
+            f"**➲ ᴀᴅᴅᴇᴅ ʙʏ»** @{userbot.username}"
         )
     except Exception as e:
         await message.reply(f"Error: {str(e)}")
 
 
-__MODULE__ = "Sᴏᴜʀᴄᴇ"
+__MODULE__ = "Oᴡɴᴇʀ"
 __HELP__ = """
-## Rᴇᴘᴏ Sᴏᴜʀᴄᴇ Mᴏᴅᴜᴇ
-
-Tʜɪs ᴍᴏᴅᴜᴇ ᴘʀᴏᴠɪᴅᴇs ᴜᴛɪɪᴛʏ ᴄᴏᴍᴍᴀɴᴅs ғᴏʀ ᴜsᴇʀs ᴛᴏ ɪɴᴛᴇʀᴀᴄᴛ ᴡɪᴛʜ ᴛʜᴇ ʙᴏᴛ.
+## Oᴡɴᴇʀ & Sᴏᴜʀᴄᴇ Mᴏᴅᴜʟᴇ
 
 ### Cᴏᴍᴍᴀɴᴅs:
-- `/ʀᴇᴘᴏ`: Gᴇᴛ ᴛʜᴇ ɪɴᴋ ᴛᴏ ᴛʜᴇ ʙᴏᴛ's sᴏᴜʀᴄᴇ ᴄᴏᴅᴇ ʀᴇᴘᴏsɪᴛᴏʀʏ.
+- `/owner`: Gᴇᴛ ᴛʜᴇ ᴏᴡɴᴇʀ ɪɴғᴏʀᴍᴀᴛɪᴏɴ (Username, ID, Group, Channel, Instagram, Snapchat).
+- `/repo` ᴏʀ `/source`: Gᴇᴛ ᴛʜᴇ ʙᴏᴛ's ɪɴғᴏʀᴍᴀᴛɪᴏɴ ᴀɴᴅ sᴜᴘᴘᴏʀᴛ ʟɪɴᴋs.
 """
-

@@ -1,4 +1,3 @@
-#https://github.com/WCGKING/BrandrdXMusic
 
 import math
 from BrandrdXMusic import app
@@ -153,7 +152,7 @@ def stream_markup(_, videoid, chat_id):
         [
             InlineKeyboardButton(
                 text="ᴏᴡɴᴇʀ",
-                url="https://t.me/BRANDEDKING8",
+                url=f"https://t.me/{config.OWNER_USERNAME}",
                 style=COLORS[0],
             )
         ],

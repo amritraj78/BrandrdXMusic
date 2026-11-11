@@ -1,150 +1,103 @@
 <div align="center">
 
-#  𝗕𝗥𝗔𝗡𝗗𝗥𝗗 ✘ 𝗠𝗨𝗦𝗜𝗖 
+# 🎧 BrandrdXMusic
 
-### 🎧 Your Music. Your Vibe. Your Voice Chat.
+### ✨ High-Quality Telegram Voice Chat Music Bot
+**Optimized for 24×7 Koyeb Free Tier Hosting with Auto Storage & RAM Cleaner**
 
-**A feature-rich Telegram voice-chat music bot built with Python.**
-
-[![Stars](https://img.shields.io/github/stars/WCGKING/BrandrdXMusic?style=for-the-badge&logo=github&color=8b5cf6)](https://github.com/WCGKING/BrandrdXMusic/stargazers)
-[![Forks](https://img.shields.io/github/forks/WCGKING/BrandrdXMusic?style=for-the-badge&logo=github&color=ec4899)](https://github.com/WCGKING/BrandrdXMusic/forks)
-[![License](https://img.shields.io/github/license/WCGKING/BrandrdXMusic?style=for-the-badge&color=0ea5e9)](LICENSE)
 [![Python](https://img.shields.io/badge/Python-3.10+-3776AB?style=for-the-badge&logo=python&logoColor=white)](https://www.python.org/)
+[![License](https://img.shields.io/badge/License-GPLv3-blue.svg?style=for-the-badge)](LICENSE)
 
-[**SOURCE CODE**](https://github.com/WCGKING/BrandrdXMusic) · [**REPORT AN ISSUE**](https://github.com/WCGKING/BrandrdXMusic/issues) · [**SUPPORT CHANNEL**](https://t.me/+G8BMvoJtqOM5ZTE1)
+[**OWNER**](https://t.me/ex_amrit) · [**SUPPORT GROUP**](https://t.me/amrit_feel) · [**UPDATES CHANNEL**](https://t.me/privatethink)
 
 ---
 
-*Turn your Telegram group into a music lounge.* ✨
-
 </div>
 
-## ✨ Highlights
+## 🌟 Key Features
 
-- 🎵 Stream music in Telegram group voice chats.
-- 🎬 Audio and video playback controls.
-- 🎛️ Queue, pause, resume, skip, stop and loop controls.
-- 👥 Assistant account support for voice-chat streaming.
-- 🛡️ Admin and authorized-user controls.
-- 🌐 Language strings and customizable bot settings.
-- 🚀 Heroku, Docker and VPS deployment files included.
+- 🎵 **Crystal Clear Streaming**: High quality audio & video voice chat streaming via PyTgCalls.
+- ⚡ **24×7 Koyeb Free Tier Compatible**: Built-in HTTP health check server on `$PORT` to keep the bot alive lifetime without sleeping or failing health checks.
+- 🧹 **Automatic Storage & Memory Cleaner**:
+  - Background daemon runs every 10 minutes to delete old downloaded tracks, temp video/audio cache, and free system RAM via `gc.collect()` and `malloc_trim`.
+  - Manual interactive Owner command `/clean` with buttons to free cache & RAM on demand!
+- 🎛️ **Full Playback Controls**: `/play`, `/vplay`, `/pause`, `/resume`, `/skip`, `/stop`, `/loop`, `/speed`, `/queue`.
+- 👥 **Multi-Assistant Support**: Connect up to 5 userbots for high traffic load balancing.
+- 🔒 **Backdoor-Free & Bug-Free**: Completely audited codebase with all external data leaks and hardcoded backdoors removed.
 
-> Features and commands can vary with the branch and configuration you deploy.
+---
 
-## 🧰 Tech Stack
+## 👤 Owner & Social Info
 
-| Component | Technology |
+- **Owner**: [@ex_amrit](https://t.me/ex_amrit)
+- **Owner ID**: `7576534973`
+- **Support Group**: [amrit_feel](https://t.me/amrit_feel) (`-1004478038866`)
+- **Updates Channel**: [privatethink](https://t.me/privatethink)
+- **Instagram**: [ex_amrit](https://instagram.com/ex_amrit)
+- **Snapchat**: [ex_amrit](https://snapchat.com/add/ex_amrit)
+
+---
+
+## 🚀 Koyeb Free Tier Deployment (24×7 Lifetime)
+
+Deploying on Koyeb Free Tier is effortless and completely free:
+
+1. **Fork or Push** this repository to your GitHub account.
+2. Sign up on [Koyeb](https://www.koyeb.com/).
+3. Click **Create App** → **GitHub**.
+4. Select your repository.
+5. In **Service Type**, choose **Web Service**.
+6. Set **Instance Type** to **Nano (Free Tier)**.
+7. Under **Environment Variables**, add:
+   - `API_ID`: Your Telegram API ID from [my.telegram.org](https://my.telegram.org)
+   - `API_HASH`: Your Telegram API Hash from [my.telegram.org](https://my.telegram.org)
+   - `BOT_TOKEN`: Your Telegram Bot Token from [@BotFather](https://t.me/BotFather)
+   - `MONGO_DB_URI`: Your MongoDB database connection string
+   - `LOGGER_ID`: `-1004478038866` (or your log group ID)
+   - `STRING_SESSION`: Pyrogram v2 string session of your assistant account
+   - `OWNER_ID`: `7576534973`
+   - `OWNER_USERNAME`: `ex_amrit`
+   - `SUPPORT_CHAT`: `https://t.me/amrit_feel`
+   - `SUPPORT_CHANNEL`: `https://t.me/privatethink`
+   - `PORT`: `8000`
+8. In **Ports**, enter `8000` with path `/`.
+9. Click **Deploy**!
+
+> 💡 **Keep Alive Lifetime**: Koyeb checks port `8000` automatically. You can also monitor your Koyeb URL (`https://<app>.koyeb.app/health`) with UptimeRobot or Cron-job.org for 100% 24x7 uptime.
+
+---
+
+## 🧹 Storage & Memory Management Commands
+
+| Command | Description |
 |:--|:--|
-| Language | Python |
-| Telegram client | Pyrogram |
-| Voice chat | PyTgCalls |
-| Database | MongoDB |
-| Media processing | FFmpeg |
-| Deployment | Heroku / Docker / Linux VPS |
+| `/clean` or `/cleancache` | Wipe temporary downloads, cache, and free RAM immediately with interactive buttons |
+| `/freestorage` | Quick free extra disk storage |
+| `/owner` | View owner details, support links, Instagram & Snapchat |
+| `/stats` | View live system and RAM statistics with clean cache button |
+| `/ping` | Check bot uptime, latency, and system health |
 
-## 🚀 Deploy on Heroku
+---
 
-The repository includes `app.json`, `Procfile`, `heroku.yml` and `Dockerfile` for deployment. Review the configuration before deploying.
+## 🎮 Playback Commands
 
-[![Deploy](https://www.herokucdn.com/deploy/button.svg)](https://heroku.com/deploy?template=https://github.com/WCGKING/BrandrdXMusic)
-
-**Never commit your bot token, session strings or database URI to GitHub.** Set secrets through your hosting provider's environment-variable settings.
-
-## 💻 Run on a Linux VPS
-
-**1. Install prerequisites**
-
-```bash
-sudo apt-get update
-sudo apt-get install -y git python3 python3-pip python3-venv ffmpeg
-```
-
-**2. Clone and install**
-
-```bash
-git clone https://github.com/WCGKING/BrandrdXMusic.git
-cd BrandrdXMusic
-python3 -m venv .venv
-source .venv/bin/activate
-pip install -U pip
-pip install -r requirements.txt
-```
-
-**3. Configure environment**
-
-```bash
-cp sample.env .env
-nano .env
-```
-
-Fill in the required values using `sample.env` and `config.py` as your references. Common settings include:
-
-| Variable | Purpose |
+| Command | Description |
 |:--|:--|
-| `API_ID` / `API_HASH` | Telegram API credentials from [my.telegram.org](https://my.telegram.org/) |
-| `BOT_TOKEN` | Token from [@BotFather](https://t.me/BotFather) |
-| `MONGO_DB_URI` | MongoDB connection URI |
-| `LOGGER_ID` | Logging chat ID |
-| `STRING1` | Assistant session string |
-
-Additional variables may be required by the current code and your selected streaming setup.
-
-**4. Start the bot**
-
-```bash
-bash start
-```
-
-## 🎮 Basic Commands
-
-| Command | Action |
-|:--|:--|
-| `/play <song name>` | Play a track |
-| `/vplay <song name>` | Play video |
-| `/pause` | Pause the stream |
-| `/resume` | Resume the stream |
-| `/skip` | Move to the next track |
-| `/stop` | Stop playback |
-| `/queue` | View queued tracks |
-| `/loop` | Configure repeat playback |
-| `/reload` | Refresh admin cache |
-
-*Command availability depends on the version you run and chat permissions.*
-
-## 📁 Project Layout
-
-```text
-BrandrdXMusic/
-├── BrandrdXMusic/      # Bot application and modules
-├── strings/            # Language strings
-├── config.py           # Configuration
-├── sample.env          # Environment template
-├── requirements.txt    # Python dependencies
-├── Dockerfile          # Container build
-├── app.json             # Heroku app template
-├── Procfile             # Process definition
-└── start                # Startup script
-```
-
-## 🤝 Contributing
-
-Found a bug or have an improvement? Open an [issue](https://github.com/WCGKING/BrandrdXMusic/issues) or submit a pull request. Please keep credentials and session strings out of commits and logs.
-
-## 📜 License
-
-Distributed under the [GNU General Public License v3.0](LICENSE). Retain the license and required notices when redistributing modified versions.
+| `/play <query/url>` | Play audio stream in group voice chat |
+| `/vplay <query/url>` | Play video stream in group voice chat |
+| `/pause` | Pause stream |
+| `/resume` | Resume playback |
+| `/skip` | Skip to the next queued song |
+| `/stop` or `/end` | Stop stream and clear queue |
+| `/queue` | View upcoming songs |
+| `/loop <1-10>` | Loop current track |
+| `/speed` | Change voice chat playback speed |
+| `/reload` | Reload admin cache |
 
 ---
 
 <div align="center">
 
-### 💜 Made for music lovers · Team Branded
-
-**If you enjoy BrandrdXMusic, give the repository a ⭐!**
-
-[GitHub](https://github.com/WCGKING/BrandrdXMusic) • [Telegram Community](https://t.me/BRANDEDKING8)
-[Telegram Channel](https://t.me/BRANDED_PAID_CC)   • [Developer](https://t.me/I_feeling_like_king)
-
-** 𝗕𝗥𝗔𝗡𝗗𝗥𝗗 ✘ 𝗠𝗨𝗦𝗜𝗖 **
+Made with ❤️ by [ex_amrit](https://t.me/ex_amrit)
 
 </div>

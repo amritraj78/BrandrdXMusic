@@ -1,0 +1,21 @@
+app:
+  name: brandrd-music
+services:
+  - name: brandrd-music
+    type: web
+    git:
+      branch: main
+    build:
+      dockerfile: Dockerfile
+    ports:
+      - port: 8000
+        path: /
+    routes:
+      - path: /
+        port: 8000
+    regions:
+      - fra
+    instance_type: nano
+    scalings:
+      min: 1
+      max: 1

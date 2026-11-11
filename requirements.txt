@@ -1,15 +1,14 @@
 aiofiles
-aiohttp 
-asyncio
+aiohttp
 dnspython
 ffmpeg-python
 gitpython
 hachoir
 httpx[http2]
 heroku3
-speedtest
-motor 
-pillow==9.5.0
+speedtest-cli
+motor
+pillow>=9.5.0
 psutil
 py-tgcalls==3.0.0
 python-dotenv
@@ -21,6 +20,6 @@ telegraph
 unidecode
 yt-dlp
 py-yt-search
-opencv-python
 ntgcalls==3.0.3
 lyricsgenius==3.0.0
+requests

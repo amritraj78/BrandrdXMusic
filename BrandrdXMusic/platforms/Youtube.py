@@ -2,15 +2,14 @@ import asyncio
 import os
 import re
 from typing import Union
+import aiohttp
 import yt_dlp
 from pyrogram.enums import MessageEntityType
 from pyrogram.types import Message
 from py_yt import VideosSearch
-import aiohttp
 
 API_URL = os.environ.get("API_URL", "")
-
-API_KEY = os.environ.get("SAPI_KEY", "") ## Get This API KEY FROM TELEGRAM OWNER USERNAME: @I_FEELING_LIKE_KING 
+API_KEY = os.environ.get("API_KEY", os.environ.get("SAPI_KEY", ""))
 
 DOWNLOAD_DIR = "downloads"
 
@@ -30,28 +29,62 @@ async def download_song(link: str) -> str:
     if os.path.exists(file_path) and os.path.getsize(file_path) > 0:
         return file_path
 
+    # 1. Try external API if configured
+    if API_URL:
+        try:
+            async with aiohttp.ClientSession() as session:
+                async with session.get(
+                    f"{API_URL.rstrip('/')}/download",
+                    params={"url": video_id, "type": "audio", "api_key": API_KEY},
+                    timeout=aiohttp.ClientTimeout(total=300)
+                ) as resp:
+                    if resp.status == 200:
+                        with open(file_path, "wb") as f:
+                            async for chunk in resp.content.iter_chunked(131072):
+                                f.write(chunk)
+            if os.path.exists(file_path) and os.path.getsize(file_path) > 0:
+                return file_path
+        except Exception:
+            if os.path.exists(file_path):
+                try:
+                    os.remove(file_path)
+                except Exception:
+                    pass
+
+    # 2. Fallback to direct yt-dlp download
     try:
-        async with aiohttp.ClientSession() as session:
-            async with session.get(
-                f"{API_URL}/download",
-                params={"url": video_id, "type": "audio", "api_key": API_KEY},
-                timeout=aiohttp.ClientTimeout(total=300)
-            ) as resp:
-                if resp.status != 200:
-                    return None
-                with open(file_path, "wb") as f:
-                    async for chunk in resp.content.iter_chunked(131072):
-                        f.write(chunk)
-        if os.path.exists(file_path) and os.path.getsize(file_path) > 0:
+        loop = asyncio.get_event_loop()
+        def _ytdl_audio():
+            ydl_opts = {
+                "format": "bestaudio/best",
+                "outtmpl": os.path.join(DOWNLOAD_DIR, f"{video_id}.%(ext)s"),
+                "geo_bypass": True,
+                "nocheckcertificate": True,
+                "quiet": True,
+                "no_warnings": True,
+                "prefer_ffmpeg": True,
+                "postprocessors": [
+                    {
+                        "key": "FFmpegExtractAudio",
+                        "preferredcodec": "mp3",
+                        "preferredquality": "192",
+                    }
+                ],
+            }
+            with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+                ydl.download([f"https://www.youtube.com/watch?v={video_id}"])
             return file_path
-        return None
+
+        res = await loop.run_in_executor(None, _ytdl_audio)
+        if os.path.exists(res) and os.path.getsize(res) > 0:
+            return res
     except Exception:
         if os.path.exists(file_path):
             try:
                 os.remove(file_path)
             except Exception:
                 pass
-        return None
+    return None
 
 
 async def download_video(link: str) -> str:
@@ -64,28 +97,54 @@ async def download_video(link: str) -> str:
     if os.path.exists(file_path) and os.path.getsize(file_path) > 0:
         return file_path
 
+    # 1. Try external API if configured
+    if API_URL:
+        try:
+            async with aiohttp.ClientSession() as session:
+                async with session.get(
+                    f"{API_URL.rstrip('/')}/download",
+                    params={"url": video_id, "type": "video", "api_key": API_KEY},
+                    timeout=aiohttp.ClientTimeout(total=600)
+                ) as resp:
+                    if resp.status == 200:
+                        with open(file_path, "wb") as f:
+                            async for chunk in resp.content.iter_chunked(131072):
+                                f.write(chunk)
+            if os.path.exists(file_path) and os.path.getsize(file_path) > 0:
+                return file_path
+        except Exception:
+            if os.path.exists(file_path):
+                try:
+                    os.remove(file_path)
+                except Exception:
+                    pass
+
+    # 2. Fallback to direct yt-dlp download
     try:
-        async with aiohttp.ClientSession() as session:
-            async with session.get(
-                f"{API_URL}/download",
-                params={"url": video_id, "type": "video", "api_key": API_KEY},
-                timeout=aiohttp.ClientTimeout(total=600)
-            ) as resp:
-                if resp.status != 200:
-                    return None
-                with open(file_path, "wb") as f:
-                    async for chunk in resp.content.iter_chunked(131072):
-                        f.write(chunk)
-        if os.path.exists(file_path) and os.path.getsize(file_path) > 0:
+        loop = asyncio.get_event_loop()
+        def _ytdl_video():
+            ydl_opts = {
+                "format": "best[ext=mp4]/best",
+                "outtmpl": file_path,
+                "geo_bypass": True,
+                "nocheckcertificate": True,
+                "quiet": True,
+                "no_warnings": True,
+            }
+            with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+                ydl.download([f"https://www.youtube.com/watch?v={video_id}"])
             return file_path
-        return None
+
+        res = await loop.run_in_executor(None, _ytdl_video)
+        if os.path.exists(res) and os.path.getsize(res) > 0:
+            return res
     except Exception:
         if os.path.exists(file_path):
             try:
                 os.remove(file_path)
             except Exception:
                 pass
-        return None
+    return None
 
 
 class YouTubeAPI:
@@ -176,19 +235,36 @@ class YouTubeAPI:
             link = self.listbase + link
         if "&" in link:
             link = link.split("&")[0]
-        try:
-            plist = await Playlist.get(link)
-        except Exception:
-            return []
-        videos = plist.get("videos") or []
         ids = []
-        for data in videos[:limit]:
-            if not data:
-                continue
-            vid = data.get("id")
-            if not vid:
-                continue
-            ids.append(vid)
+        try:
+            from py_yt import Playlist
+            plist = await Playlist.get(link)
+            videos = plist.get("videos") or []
+            for data in videos[:limit]:
+                if data and data.get("id"):
+                    ids.append(data.get("id"))
+            if ids:
+                return ids
+        except Exception:
+            pass
+
+        try:
+            loop = asyncio.get_event_loop()
+            def _extract_playlist():
+                ydl_opts = {
+                    "extract_flat": True,
+                    "quiet": True,
+                    "no_warnings": True,
+                }
+                with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+                    info = ydl.extract_info(link, download=False)
+                    entries = info.get("entries") or []
+                    return [e["id"] for e in entries[:limit] if e and "id" in e]
+            extracted = await loop.run_in_executor(None, _extract_playlist)
+            if extracted:
+                return extracted
+        except Exception:
+            pass
         return ids
 
     async def track(self, link: str, videoid: Union[bool, str] = None):

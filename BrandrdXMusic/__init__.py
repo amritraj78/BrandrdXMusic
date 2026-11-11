@@ -14,7 +14,6 @@ heroku()
 app = Hotty()
 userbot = Userbot()
 
-
 from .platforms import *
 
 Apple = AppleAPI()
@@ -24,5 +23,3 @@ Spotify = SpotifyAPI()
 Resso = RessoAPI()
 Telegram = TeleAPI()
 YouTube = YouTubeAPI()
-
-APP = "Systumm_music_bot"  # connect music api key "Dont change it"

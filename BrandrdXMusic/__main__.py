@@ -10,11 +10,28 @@ from BrandrdXMusic import LOGGER, app, userbot
 from BrandrdXMusic.core.call import Hotty
 from BrandrdXMusic.misc import sudo
 from BrandrdXMusic.plugins import ALL_MODULES
+from BrandrdXMusic.utils.cleaner import auto_clean_worker, clean_storage_and_memory
 from BrandrdXMusic.utils.database import get_banned_users, get_gbanned
+from BrandrdXMusic.utils.web import start_web_server
 from config import BANNED_USERS
 
 
 async def init():
+    # 1. Clean storage and free memory on initial startup
+    try:
+        clean_storage_and_memory()
+    except Exception as e:
+        LOGGER("BrandrdXMusic").warning(f"Initial cleanup error: {e}")
+
+    # 2. Start Koyeb 24x7 web server
+    try:
+        asyncio.create_task(start_web_server())
+    except Exception as e:
+        LOGGER("BrandrdXMusic.web").warning(f"Could not start web server: {e}")
+
+    # 3. Start auto-clean background worker (every 10 mins)
+    asyncio.create_task(auto_clean_worker())
+
     if (
         not config.STRING1
         and not config.STRING2
@@ -22,7 +39,7 @@ async def init():
         and not config.STRING4
         and not config.STRING5
     ):
-        LOGGER(name).error("Assistant client variables not defined, exiting...")
+        LOGGER("BrandrdXMusic").error("Assistant client variables not defined, exiting...")
         exit()
     await sudo()
     try:
@@ -44,14 +61,14 @@ async def init():
         await Hotty.stream_call("https://graph.org/file/e999c40cb700e7c684b75.mp4")
     except NoActiveGroupCall:
         LOGGER("BrandrdXMusic").error(
-            "Please turn on the videochat of your log group\channel.\n\nStopping Bot..."
+            "Please turn on the videochat of your log group/channel.\n\nStopping Bot..."
         )
         exit()
     except:
         pass
     await Hotty.decorators()
     LOGGER("BrandrdXMusic").info(
-        "ᴅʀᴏᴘ ʏᴏᴜʀ ɢɪʀʟꜰʀɪᴇɴᴅ'ꜱ ɴᴜᴍʙᴇʀ ᴀᴛ @BRANDED_PAID_CC ᴊᴏɪɴ @BRANDRD_BOT , @BRANDEDKING8 ꜰᴏʀ ᴀɴʏ ɪꜱꜱᴜᴇꜱ"
+        f"BrandrdXMusic started successfully! Owner: @{config.OWNER_USERNAME} | Running 24x7 on Koyeb."
     )
     await idle()
     await app.stop()

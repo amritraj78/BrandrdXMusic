@@ -1,4 +1,3 @@
-#https://github.com/WCGKING/BrandrdXMusic
 
 from typing import Union
 from BrandrdXMusic import app
@@ -152,7 +151,7 @@ def queuemarkup(_, vidid, chat_id):
         [
             InlineKeyboardButton(
                 text="๏ ᴍᴏʀᴇ ๏",
-                url="https://t.me/BRANDED_PAID_CC",
+                url=config.SUPPORT_CHANNEL,
                 style=COLORS[0],
             ),
         ],

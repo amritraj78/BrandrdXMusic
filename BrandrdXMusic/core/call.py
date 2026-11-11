@@ -749,5 +749,12 @@ class Call(PyTgCalls):
                 return
             await self.change_stream(client, update.chat_id)
 
-        
+        for client in clients:
+            try:
+                client.on_update(filters.chat_update())(stream_services_handler)
+                client.on_update(filters.stream_end())(stream_end_handler)
+            except Exception:
+                pass
+
+
 Hotty = Call()

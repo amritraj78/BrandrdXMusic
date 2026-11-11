@@ -18,23 +18,38 @@ def stats_buttons(_, status):
             callback_data="TopOverall",
         ),
     ]
-    upl = InlineKeyboardMarkup(
-        [
-            sudo if status else not_sudo,
+    buttons = [
+        sudo if status else not_sudo,
+    ]
+    if status:
+        buttons.append(
             [
                 InlineKeyboardButton(
-                    text=_["CLOSE_BUTTON"],
-                    callback_data="close",
+                    text="🗑️ ᴄʟᴇᴀɴ sᴛᴏʀᴀɢᴇ & ʀᴀᴍ",
+                    callback_data="clean_storage_action",
                 ),
-            ],
+            ]
+        )
+    buttons.append(
+        [
+            InlineKeyboardButton(
+                text=_["CLOSE_BUTTON"],
+                callback_data="close",
+            ),
         ]
     )
-    return upl
+    return InlineKeyboardMarkup(buttons)
 
 
 def back_stats_buttons(_):
     upl = InlineKeyboardMarkup(
         [
+            [
+                InlineKeyboardButton(
+                    text="🗑️ ᴄʟᴇᴀɴ sᴛᴏʀᴀɢᴇ & ʀᴀᴍ",
+                    callback_data="clean_storage_action",
+                ),
+            ],
             [
                 InlineKeyboardButton(
                     text=_["BACK_BUTTON"],

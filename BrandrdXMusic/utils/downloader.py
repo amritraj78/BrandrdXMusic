@@ -1,4 +1,3 @@
-#https://github.com/WCGKING/BrandrdXMusic
 
 from os import path
 import yt_dlp

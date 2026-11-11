@@ -1,4 +1,3 @@
-#https://github.com/WCGKING/BrandrdXMusic
 
 from typing import Dict, Union
 from motor.motor_asyncio import AsyncIOMotorClient as MongoCli

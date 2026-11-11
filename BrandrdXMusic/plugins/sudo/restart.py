@@ -68,7 +68,7 @@ async def update_(client, message, _):
     _update_response_ = "<b>ᴀ ɴᴇᴡ ᴜᴩᴅᴀᴛᴇ ɪs ᴀᴠᴀɪʟᴀʙʟᴇ ғᴏʀ ᴛʜᴇ ʙᴏᴛ !</b>\n\n➣ ᴩᴜsʜɪɴɢ ᴜᴩᴅᴀᴛᴇs ɴᴏᴡ\n\n<b><u>ᴜᴩᴅᴀᴛᴇs:</u></b>\n\n"
     _final_updates_ = _update_response_ + updates
     if len(_final_updates_) > 4096:
-        url = await DAXXBin(updates)
+        url = await HottyBin(updates)
         nrs = await response.edit(
             f"<b>ᴀ ɴᴇᴡ ᴜᴩᴅᴀᴛᴇ ɪs ᴀᴠᴀɪʟᴀʙʟᴇ ғᴏʀ ᴛʜᴇ ʙᴏᴛ !</b>\n\n➣ ᴩᴜsʜɪɴɢ ᴜᴩᴅᴀᴛᴇs ɴᴏᴡ\n\n<u><b>ᴜᴩᴅᴀᴛᴇs :</b></u>\n\n<a href={url}>ᴄʜᴇᴄᴋ ᴜᴩᴅᴀᴛᴇs</a>"
         )
@@ -126,10 +126,10 @@ async def restart_(_, message):
             pass
 
     try:
-        shutil.rmtree("downloads")
-        shutil.rmtree("raw_files")
-        shutil.rmtree("cache")
-    except:
+        shutil.rmtree("downloads", ignore_errors=True)
+        shutil.rmtree("raw_files", ignore_errors=True)
+        shutil.rmtree("cache", ignore_errors=True)
+    except Exception:
         pass
     await response.edit_text(
         "» ʀᴇsᴛᴀʀᴛ ᴘʀᴏᴄᴇss sᴛᴀʀᴛᴇᴅ, ᴘʟᴇᴀsᴇ ᴡᴀɪᴛ ғᴏʀ ғᴇᴡ sᴇᴄᴏɴᴅs ᴜɴᴛɪʟ ᴛʜᴇ ʙᴏᴛ sᴛᴀʀᴛs..."
