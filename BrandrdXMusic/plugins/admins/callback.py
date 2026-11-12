@@ -25,6 +25,7 @@ from BrandrdXMusic.utils.inline import (
     filter_markup,
     stream_markup,
     stream_markup_timer,
+    stream_markup_timer2,
 )
 from BrandrdXMusic.utils.stream.autoclear import auto_clean
 from BrandrdXMusic.utils.thumbnails import get_thumb
@@ -43,6 +44,7 @@ from strings import get_string
 checker = {}
 upvoters = {}
 current_volume = {}
+wrong = {}
 
 
 @app.on_callback_query(filters.regex("ADMIN") & ~BANNED_USERS)
@@ -159,6 +161,8 @@ async def del_back_playlist(client, CallbackQuery, _):
         await CallbackQuery.answer()
         await Hotty.stop_stream(chat_id)
         await set_loop(chat_id, 0)
+        if chat_id in wrong:
+            wrong.pop(chat_id, None)
         await CallbackQuery.message.reply_text(
             _["admin_5"].format(mention), reply_markup=close_markup(_)
         )
@@ -196,10 +200,12 @@ async def del_back_playlist(client, CallbackQuery, _):
         txt = "🔁 Loop enabled (3x)" if new_loop > 0 else "🔁 Loop disabled"
         return await CallbackQuery.answer(txt, show_alert=False)
     elif command == "FilterMenu":
+        wrong.setdefault(chat_id, {})[CallbackQuery.message.id] = False
         return await CallbackQuery.edit_message_reply_markup(
             reply_markup=InlineKeyboardMarkup(filter_markup(chat_id))
         )
     elif command == "BackToPlayer":
+        wrong.setdefault(chat_id, {})[CallbackQuery.message.id] = True
         check = db.get(chat_id)
         vidid = check[0]["vidid"] if check else ""
         return await CallbackQuery.edit_message_reply_markup(
@@ -428,79 +434,40 @@ async def markup_timer():
                 playing = db.get(chat_id)
                 if not playing:
                     continue
-                duration_seconds = int(playing[0]["seconds"])
+                duration_seconds = int(playing[0].get("seconds", 0))
                 if duration_seconds == 0:
                     continue
-                try:
-                    mystic = playing[0]["markup"]
-                except:
+                mystic = playing[0].get("mystic")
+                markup = playing[0].get("markup")
+                if not mystic:
                     continue
-                try:
-                    check = checker[chat_id][mystic.id]
-                    if check is False:
-                        continue
-                except:
-                    pass
+                if wrong.get(chat_id, {}).get(mystic.id) is False:
+                    continue
                 try:
                     language = await get_lang(chat_id)
                     _ = get_string(language)
                 except:
                     _ = get_string("en")
-                try:
-                    mystic = playing[0]["mystic"]
-                    markup = playing[0]["markup"]
-                except:
-                    continue
-                try:
-                    check = wrong[chat_id][mystic.id]
-                    if check is False:
-                        continue
-                except:
-                    pass
-                try:
-                    language = await get_lang(chat_id)
-                    _ = get_string(language)
-                except:
-                    _ = get_string("en")
-                try:
-                    mystic = playing[0]["mystic"]
-                    markup = playing[0]["markup"]
-                except:
-                    continue
-                try:
-                    check = wrong[chat_id][mystic.id]
-                    if check is False:
-                        continue
-                except:
-                    pass
-                try:
-                    language = await get_lang(chat_id)
-                    _ = get_string(language)
-                except:
-                    _ = get_string("en")
-                try:
-                    buttons = (
-                        stream_markup_timer(
-                            _,
-                            playing[0]["vidid"],
-                            chat_id,
-                            seconds_to_min(playing[0]["played"]),
-                            playing[0]["dur"],
-                        )
-                        if markup == "stream"
-                        else stream_markup_timer2(
-                            _,
-                            chat_id,
-                            seconds_to_min(playing[0]["played"]),
-                            playing[0]["dur"],
-                        )
+                buttons = (
+                    stream_markup_timer(
+                        _,
+                        playing[0].get("vidid"),
+                        chat_id,
+                        seconds_to_min(playing[0]["played"]),
+                        playing[0]["dur"],
                     )
-                    await mystic.edit_reply_markup(
-                        reply_markup=InlineKeyboardMarkup(buttons)
+                    if markup == "stream"
+                    else stream_markup_timer2(
+                        _,
+                        chat_id,
+                        seconds_to_min(playing[0]["played"]),
+                        playing[0]["dur"],
                     )
-                except:
-                    continue
-            except:
+                )
+                await mystic.edit_reply_markup(
+                    reply_markup=InlineKeyboardMarkup(buttons)
+                )
+            except Exception:
                 continue
 
 

@@ -71,6 +71,7 @@ def stream_markup_timer(_, vidid, chat_id, played, dur):
     else:
         bar = "—————————▷"
 
+    web_app_url = getattr(config, 'WEB_APP_URL', 'https://brandrd-music-animeworlds-b77dd182.apps.mistral.run')
     return [
         [
             InlineKeyboardButton(
@@ -106,13 +107,52 @@ def stream_markup_timer(_, vidid, chat_id, played, dur):
                 style=COLORS[2],
             ),
         ],
-
         [
+            InlineKeyboardButton(
+                text="🔉 -15%",
+                callback_data=f"ADMIN VolDown|{chat_id}",
+                style=COLORS[0],
+            ),
+            InlineKeyboardButton(
+                text="🔊 +15%",
+                callback_data=f"ADMIN VolUp|{chat_id}",
+                style=COLORS[0],
+            ),
+            InlineKeyboardButton(
+                text="🔀 ꜱʜᴜғғʟᴇ",
+                callback_data=f"ADMIN Shuffle|{chat_id}",
+                style=COLORS[1],
+            ),
+            InlineKeyboardButton(
+                text="🔁 ʟᴏᴏᴘ",
+                callback_data=f"ADMIN Loop|{chat_id}",
+                style=COLORS[1],
+            ),
+        ],
+        [
+            InlineKeyboardButton(
+                text="📱 ᴍɪɴɪ ᴀᴘᴘ (ǫᴜᴇᴜᴇ • sᴇᴀʀᴄʜ • ᴠᴏᴛᴇ)",
+                web_app=WebAppInfo(
+                    url=f"{web_app_url}/webapp?chat_id={chat_id}"
+                ),
+            )
+        ],
+        [
+            InlineKeyboardButton(
+                text="🎛️ ғɪʟᴛᴇʀs",
+                callback_data=f"ADMIN FilterMenu|{chat_id}",
+                style=COLORS[0],
+            ),
+            InlineKeyboardButton(
+                text="👑 ᴏᴡɴᴇʀ",
+                url=f"https://t.me/{config.OWNER_USERNAME}",
+                style=COLORS[1],
+            ),
             InlineKeyboardButton(
                 text=_["CLOSE_BUTTON"],
                 callback_data="close",
                 style=COLORS[2],
-            )
+            ),
         ],
     ]
 
@@ -229,8 +269,13 @@ def filter_markup(chat_id):
 # ImportError: cannot import name 'stream_markup2'
 # ============================================================
 
-def stream_markup2(_, videoid, chat_id):
-    return stream_markup(_, videoid, chat_id)
+def stream_markup2(_, chat_id_or_videoid, chat_id=None):
+    cid = chat_id if chat_id is not None else chat_id_or_videoid
+    return stream_markup(_, None, cid)
+
+
+def stream_markup_timer2(_, chat_id, played, dur):
+    return stream_markup_timer(_, None, chat_id, played, dur)
 
 
 # ============================================================
