@@ -115,6 +115,7 @@ async def stream(
             else:
                 if not forceplay:
                     db[chat_id] = []
+                status = True if video else None
                 try:
                     file_path, direct = await YouTube.download(
                         vidid, mystic, video=status, videoid=True, title=title, direct_stream=(not status)

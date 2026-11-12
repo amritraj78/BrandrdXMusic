@@ -1,6 +1,7 @@
-import socket,requests
-from asyncio import get_running_loop
-from functools import partial
+import asyncio
+import socket
+import urllib.parse
+import urllib.request
 
 
 def _netcat(host, port, content):
@@ -16,9 +17,21 @@ def _netcat(host, port, content):
     s.close()
 
 
+def _sync_paste(content):
+    url = "https://pastebin.com/api/api_post.php"
+    data = urllib.parse.urlencode({
+        "api_dev_key": "9Rfu50iV5l3EuRWATw7EDLuC37RED-C4",
+        "api_paste_code": content,
+        "api_option": "paste",
+    }).encode("utf-8")
+    req = urllib.request.Request(url, data=data, headers={"User-Agent": "Mozilla/5.0"})
+    with urllib.request.urlopen(req, timeout=10) as resp:
+        return resp.read().decode("utf-8")
+
+
 async def HottyBin(content):
-    url ="https://pastebin.com/api/api_post.php"
-    data = {"api_dev_key":"9Rfu50iV5l3EuRWATw7EDLuC37RED-C4","api_paste_code": content,"api_option": "paste"}
-    response = requests.post(url, data=data)
-    link=response.text
-    return link
+    loop = asyncio.get_event_loop()
+    try:
+        return await loop.run_in_executor(None, _sync_paste, content)
+    except Exception:
+        return "https://pastebin.com"

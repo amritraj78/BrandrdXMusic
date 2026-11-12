@@ -16,8 +16,7 @@ from config import BANNED_USERS
     & ~BANNED_USERS
 )
 @AdminRightsCheck
-async def volume_cmd(client, message: Message, _):
-    chat_id = message.chat.id
+async def volume_cmd(client, message: Message, _, chat_id):
     if not await is_active_chat(chat_id):
         return await message.reply_text(_["general_5"])
 

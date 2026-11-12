@@ -33,6 +33,7 @@ from BrandrdXMusic.utils.database import (
     music_on,
     remove_active_chat,
     remove_active_video_chat,
+    record_played,
     set_loop,
 )
 from BrandrdXMusic.utils.exceptions import AssistantErr

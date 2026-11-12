@@ -5,6 +5,7 @@ from BrandrdXMusic import app
 from BrandrdXMusic.core.call import Hotty
 from BrandrdXMusic.misc import SUDOERS, db
 from BrandrdXMusic.utils import AdminRightsCheck
+from BrandrdXMusic.utils.admin_check import get_chat_admins
 from BrandrdXMusic.utils.database import is_active_chat, is_nonadmin_chat
 from BrandrdXMusic.utils.decorators.language import languageCB
 from BrandrdXMusic.utils.inline import close_markup, speed_markup
@@ -48,7 +49,7 @@ async def del_back_playlist(client, CallbackQuery, _):
     is_non_admin = await is_nonadmin_chat(CallbackQuery.message.chat.id)
     if not is_non_admin:
         if CallbackQuery.from_user.id not in SUDOERS:
-            admins = adminlist.get(CallbackQuery.message.chat.id)
+            admins = await get_chat_admins(CallbackQuery.message.chat.id)
             if not admins:
                 return await CallbackQuery.answer(_["admin_13"], show_alert=True)
             else:

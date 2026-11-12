@@ -38,14 +38,20 @@ MESSAGE_EFFECTS = [
 async def start_pm(client, message: Message, _):
     effect_id = random.choice(MESSAGE_EFFECTS)
     await add_served_user(message.from_user.id)
-    await message.react("🎉")
+    try:
+        await message.react("🎉")
+    except Exception:
+        pass
 
     if len(message.text.split()) > 1:
         name = message.text.split(None, 1)[1]
 
         if name[0:4] == "help":
             keyboard = help_pannel(_)
-            await message.reply_sticker("CAACAgUAAxkBAAEQI1RlTLnRAy4h9lOS6jgS5FYsQoruOAAC1gMAAg6ryVcldUr_lhPexzME")
+            try:
+                await message.reply_sticker("CAACAgUAAxkBAAEQI1RlTLnRAy4h9lOS6jgS5FYsQoruOAAC1gMAAg6ryVcldUr_lhPexzME")
+            except Exception:
+                pass
             return await message.reply_photo(
                 photo=config.START_IMG_URL,
                 caption=_["help_1"].format(config.SUPPORT_CHAT),
@@ -75,17 +81,30 @@ async def start_pm(client, message: Message, _):
             m = await message.reply_text("🔎")
             query = str(name).replace("info_", "", 1)
             query = f"https://www.youtube.com/watch?v={query}"
-            results = VideosSearch(query, limit=1)
-
-            for result in (await results.next())["result"]:
-                title = result["title"]
-                duration = result["duration"]
-                views = result["viewCount"]["short"]
-                thumbnail = result["thumbnails"][0]["url"].split("?")[0]
-                channellink = result["channel"]["link"]
-                channel = result["channel"]["name"]
-                link = result["link"]
-                published = result["publishedTime"]
+            try:
+                results = VideosSearch(query, limit=1)
+                res_data = (await results.next()).get("result") or []
+                if not res_data:
+                    try:
+                        await m.delete()
+                    except Exception:
+                        pass
+                    return await message.reply_text("Track info not found.")
+                result = res_data[0]
+                title = result.get("title", "Track")
+                duration = result.get("duration", "0:00")
+                views = result.get("viewCount", {}).get("short", "0") if isinstance(result.get("viewCount"), dict) else "0"
+                thumbnail = result.get("thumbnails", [{}])[0].get("url", "").split("?")[0]
+                channellink = result.get("channel", {}).get("link", "")
+                channel = result.get("channel", {}).get("name", "YouTube")
+                link = result.get("link", query)
+                published = result.get("publishedTime", "")
+            except Exception:
+                try:
+                    await m.delete()
+                except Exception:
+                    pass
+                return await message.reply_text("Failed to fetch track info.")
 
             searched_text = _["start_6"].format(
                 title,
@@ -108,10 +127,13 @@ async def start_pm(client, message: Message, _):
                 ]
             )
 
-            await m.delete()
+            try:
+                await m.delete()
+            except Exception:
+                pass
             await app.send_photo(
                 chat_id=message.chat.id,
-                photo=thumbnail,
+                photo=thumbnail if thumbnail else config.START_IMG_URL,
                 caption=searched_text,
                 reply_markup=key,
             )

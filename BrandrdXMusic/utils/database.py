@@ -51,6 +51,23 @@ suggestion = {}
 mute = {}
 audio = {}
 video = {}
+_chat_history = {}
+
+
+def record_played(chat_id: int, videoid: str):
+    """Safely track recent played tracks in memory for history/recommendations."""
+    if not videoid:
+        return
+    if chat_id not in _chat_history:
+        _chat_history[chat_id] = []
+    if videoid not in _chat_history[chat_id]:
+        _chat_history[chat_id].append(videoid)
+        if len(_chat_history[chat_id]) > 50:
+            _chat_history[chat_id].pop(0)
+
+
+def get_recent_played(chat_id: int) -> list:
+    return _chat_history.get(chat_id, [])
 
 # Total Queries on bot
 

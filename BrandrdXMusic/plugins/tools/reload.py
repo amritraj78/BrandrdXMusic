@@ -2,7 +2,7 @@ import asyncio
 import time
 
 from pyrogram import filters
-from pyrogram.enums import ChatMembersFilter
+from pyrogram.enums import ChatMembersFilter, ChatMemberStatus
 from pyrogram.types import CallbackQuery, Message
 
 from BrandrdXMusic import app
@@ -10,6 +10,7 @@ from BrandrdXMusic.core.call import Hotty
 from BrandrdXMusic.misc import db
 from BrandrdXMusic.utils.database import get_assistant, get_authuser_names, get_cmode
 from BrandrdXMusic.utils.decorators import ActualAdminCB, AdminActual, language
+from BrandrdXMusic.utils.admin_check import get_chat_admins
 from BrandrdXMusic.utils.formatters import alpha_to_int, get_readable_time
 from config import BANNED_USERS, adminlist, lyrical
 
@@ -29,16 +30,7 @@ async def reload_admin_cache(client, message: Message, _):
             if saved > time.time():
                 left = get_readable_time((int(saved) - int(time.time())))
                 return await message.reply_text(_["reload_1"].format(left))
-        adminlist[message.chat.id] = []
-        async for user in app.get_chat_members(
-            message.chat.id, filter=ChatMembersFilter.ADMINISTRATORS
-        ):
-            if user.privileges.can_manage_video_chats:
-                adminlist[message.chat.id].append(user.user.id)
-        authusers = await get_authuser_names(message.chat.id)
-        for user in authusers:
-            user_id = await alpha_to_int(user)
-            adminlist[message.chat.id].append(user_id)
+        await get_chat_admins(message.chat.id, refresh=True)
         now = int(time.time()) + 180
         rel[message.chat.id] = now
         await message.reply_text(_["reload_2"])

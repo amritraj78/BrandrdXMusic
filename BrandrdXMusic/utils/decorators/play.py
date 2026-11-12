@@ -20,6 +20,7 @@ from BrandrdXMusic.utils.database import (
     is_active_chat,
     is_maintenance,
 )
+from BrandrdXMusic.utils.admin_check import get_chat_admins
 from BrandrdXMusic.utils.inline import botplaylist_markup
 from config import PLAYLIST_IMG_URL, SUPPORT_CHAT, adminlist
 from strings import get_string
@@ -108,16 +109,7 @@ def PlayWrapper(command):
         playty = await get_playtype(message.chat.id)
         if playty != "Everyone":
             if message.from_user.id not in SUDOERS:
-                admins = adminlist.get(message.chat.id)
-                if not admins:
-                    try:
-                        admins = []
-                        async for m in app.get_chat_administrators(message.chat.id):
-                            if m.user:
-                                admins.append(m.user.id)
-                        adminlist[message.chat.id] = admins
-                    except Exception:
-                        pass
+                admins = await get_chat_admins(message.chat.id)
                 if not admins:
                     return await message.reply_text(_["admin_18"])
                 else:
@@ -286,16 +278,7 @@ def CPlayWrapper(command):
         playty = await get_playtype(message.chat.id)
         if playty != "Everyone":
             if message.from_user.id not in SUDOERS:
-                admins = adminlist.get(message.chat.id)
-                if not admins:
-                    try:
-                        admins = []
-                        async for m in app.get_chat_administrators(message.chat.id):
-                            if m.user:
-                                admins.append(m.user.id)
-                        adminlist[message.chat.id] = admins
-                    except Exception:
-                        pass
+                admins = await get_chat_admins(message.chat.id)
                 if not admins:
                     return await message.reply_text(_["admin_13"])
                 else:

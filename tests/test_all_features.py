@@ -1,3 +1,4 @@
+import asyncio
 import base64
 import json
 import math
@@ -266,6 +267,38 @@ class TestAllFeatures(unittest.TestCase):
         self.assertIn("webapp?chat_id=", mini_app_btn.url)
         self.assertIn(str(chat_id), mini_app_btn.url)
         print("\n[PASS] Test 9: All 5-row inline markups, timers, and Mini App URL verified.")
+
+    def test_10_admin_check_and_call_record(self):
+        """Test record_played history tracking, admin caching, and signature compatibility."""
+        from BrandrdXMusic.utils.database import record_played, _chat_history
+        from config import adminlist
+
+        test_chat_id = -10099887766
+        # Test record_played
+        self.assertNotIn(test_chat_id, _chat_history)
+        record_played(test_chat_id, "test_vid_1")
+        record_played(test_chat_id, "test_vid_2")
+        record_played(test_chat_id, "")  # Should ignore empty
+        self.assertEqual(len(_chat_history[test_chat_id]), 2)
+        self.assertIn("test_vid_1", _chat_history[test_chat_id])
+        self.assertIn("test_vid_2", _chat_history[test_chat_id])
+
+        # Test adminlist caching
+        adminlist[test_chat_id] = [12345, 67890]
+        from BrandrdXMusic.utils.admin_check import get_chat_admins
+        loop = asyncio.get_event_loop()
+        cached = loop.run_until_complete(get_chat_admins(test_chat_id, refresh=False))
+        self.assertEqual(cached, [12345, 67890])
+
+        # Test signature inspector compatibility
+        import inspect
+        async def func_3_args(client, message, _): pass
+        async def func_4_args(client, message, _, chat_id): pass
+
+        self.assertEqual(len(inspect.signature(func_3_args).parameters), 3)
+        self.assertEqual(len(inspect.signature(func_4_args).parameters), 4)
+
+        print("\n[PASS] Test 10: Admin check caching, record_played history, and signature compatibility verified.")
 
 
 if __name__ == "__main__":

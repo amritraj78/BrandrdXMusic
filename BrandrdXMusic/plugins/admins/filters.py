@@ -18,8 +18,7 @@ from config import BANNED_USERS
     & ~BANNED_USERS
 )
 @AdminRightsCheck
-async def open_filters_menu(client, message: Message, _):
-    chat_id = message.chat.id
+async def open_filters_menu(client, message: Message, _, chat_id):
     if not await is_active_chat(chat_id):
         return await message.reply_text(_["general_5"])
     check = db.get(chat_id)
@@ -42,8 +41,7 @@ async def open_filters_menu(client, message: Message, _):
     & ~BANNED_USERS
 )
 @AdminRightsCheck
-async def quick_filter_cmd(client, message: Message, _):
-    chat_id = message.chat.id
+async def quick_filter_cmd(client, message: Message, _, chat_id):
     if not await is_active_chat(chat_id):
         return await message.reply_text(_["general_5"])
     check = db.get(chat_id)

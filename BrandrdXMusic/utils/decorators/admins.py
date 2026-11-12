@@ -1,5 +1,7 @@
 
-from pyrogram.enums import ChatType
+import inspect
+
+from pyrogram.enums import ChatType, ChatMemberStatus
 from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 
 from BrandrdXMusic import app
@@ -14,6 +16,7 @@ from BrandrdXMusic.utils.database import (
     is_nonadmin_chat,
     is_skipmode,
 )
+from BrandrdXMusic.utils.admin_check import get_chat_admins
 from config import SUPPORT_CHAT, adminlist, confirmer
 from strings import get_string
 
@@ -66,16 +69,7 @@ def AdminRightsCheck(mystic):
         is_non_admin = await is_nonadmin_chat(message.chat.id)
         if not is_non_admin:
             if message.from_user.id not in SUDOERS:
-                admins = adminlist.get(message.chat.id)
-                if not admins:
-                    try:
-                        admins = []
-                        async for m in app.get_chat_administrators(message.chat.id):
-                            if m.user:
-                                admins.append(m.user.id)
-                        adminlist[message.chat.id] = admins
-                    except Exception:
-                        pass
+                admins = await get_chat_admins(message.chat.id)
                 if not admins:
                     return await message.reply_text(_["admin_13"])
                 else:
@@ -120,7 +114,11 @@ def AdminRightsCheck(mystic):
                         else:
                             return await message.reply_text(_["admin_14"])
 
-        return await mystic(client, message, _, chat_id)
+        sig = inspect.signature(mystic)
+        if len(sig.parameters) >= 4:
+            return await mystic(client, message, _, chat_id)
+        else:
+            return await mystic(client, message, _)
 
     return wrapper
 
@@ -158,13 +156,13 @@ def AdminActual(mystic):
             return await message.reply_text(_["general_3"], reply_markup=upl)
         if message.from_user.id not in SUDOERS:
             try:
-                member = (
-                    await app.get_chat_member(message.chat.id, message.from_user.id)
-                ).privileges
+                member = await app.get_chat_member(message.chat.id, message.from_user.id)
             except:
                 return
-            if not member.can_manage_video_chats:
-                return await message.reply(_["general_4"])
+            status = getattr(member, "status", None)
+            if status != ChatMemberStatus.OWNER:
+                if not (member.privileges and getattr(member.privileges, "can_manage_video_chats", False)):
+                    return await message.reply(_["general_4"])
         return await mystic(client, message, _)
 
     return wrapper
@@ -188,26 +186,27 @@ def ActualAdminCB(mystic):
         is_non_admin = await is_nonadmin_chat(CallbackQuery.message.chat.id)
         if not is_non_admin:
             try:
-                a = (
-                    await app.get_chat_member(
-                        CallbackQuery.message.chat.id,
-                        CallbackQuery.from_user.id,
-                    )
-                ).privileges
+                member = await app.get_chat_member(
+                    CallbackQuery.message.chat.id,
+                    CallbackQuery.from_user.id,
+                )
             except:
                 return await CallbackQuery.answer(_["general_4"], show_alert=True)
-            if not a.can_manage_video_chats:
-                if CallbackQuery.from_user.id not in SUDOERS:
-                    token = await int_to_alpha(CallbackQuery.from_user.id)
-                    _check = await get_authuser_names(CallbackQuery.from_user.id)
-                    if token not in _check:
-                        try:
-                            return await CallbackQuery.answer(
-                                _["general_4"],
-                                show_alert=True,
-                            )
-                        except:
-                            return
+            status = getattr(member, "status", None)
+            if status != ChatMemberStatus.OWNER:
+                if not (member.privileges and getattr(member.privileges, "can_manage_video_chats", False)):
+                    if CallbackQuery.from_user.id not in SUDOERS:
+                        token = await int_to_alpha(CallbackQuery.from_user.id)
+                        _check = await get_authuser_names(CallbackQuery.message.chat.id)
+                        if token not in _check:
+                            try:
+                                return await CallbackQuery.answer(
+                                    _["general_4"],
+                                    show_alert=True,
+                                )
+                            except:
+                                return
         return await mystic(client, CallbackQuery, _)
 
     return wrapper
+

@@ -13,6 +13,7 @@ from BrandrdXMusic.utils.database import (
     get_served_chats,
     get_served_users,
 )
+from BrandrdXMusic.utils.admin_check import get_chat_admins
 from BrandrdXMusic.utils.decorators.language import language
 from BrandrdXMusic.utils.formatters import alpha_to_int
 from config import adminlist
@@ -147,22 +148,13 @@ async def braodcast_message(client, message, _):
 
 
 async def auto_clean():
-    while not await asyncio.sleep(10):
+    while not await asyncio.sleep(20):
         try:
             served_chats = await get_active_chats()
             for chat_id in served_chats:
                 if chat_id not in adminlist:
-                    adminlist[chat_id] = []
-                    async for user in app.get_chat_members(
-                        chat_id, filter=ChatMembersFilter.ADMINISTRATORS
-                    ):
-                        if user.privileges.can_manage_video_chats:
-                            adminlist[chat_id].append(user.user.id)
-                    authusers = await get_authuser_names(chat_id)
-                    for user in authusers:
-                        user_id = await alpha_to_int(user)
-                        adminlist[chat_id].append(user_id)
-        except:
+                    await get_chat_admins(chat_id)
+        except Exception:
             continue
 
 

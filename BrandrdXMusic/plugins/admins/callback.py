@@ -29,6 +29,7 @@ from BrandrdXMusic.utils.inline import (
     stream_markup_timer,
     stream_markup_timer2,
 )
+from BrandrdXMusic.utils.admin_check import get_chat_admins
 from BrandrdXMusic.utils.stream.autoclear import auto_clean
 from BrandrdXMusic.utils.thumbnails import get_thumb
 from config import (
@@ -134,16 +135,7 @@ async def del_back_playlist(client, CallbackQuery, _):
         is_non_admin = await is_nonadmin_chat(CallbackQuery.message.chat.id)
         if not is_non_admin:
             if CallbackQuery.from_user.id not in SUDOERS:
-                admins = adminlist.get(CallbackQuery.message.chat.id)
-                if not admins:
-                    try:
-                        admins = []
-                        async for m in app.get_chat_administrators(CallbackQuery.message.chat.id):
-                            if m.user:
-                                admins.append(m.user.id)
-                        adminlist[CallbackQuery.message.chat.id] = admins
-                    except Exception:
-                        pass
+                admins = await get_chat_admins(CallbackQuery.message.chat.id)
                 if not admins:
                     return await CallbackQuery.answer(_["admin_13"], show_alert=True)
                 else:
