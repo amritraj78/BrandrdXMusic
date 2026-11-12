@@ -8,6 +8,7 @@ from pytgcalls.exceptions import NoActiveGroupCall
 
 import config
 from BrandrdXMusic import Apple, Resso, SoundCloud, Spotify, Telegram, YouTube, app
+from BrandrdXMusic.logging import LOGGER
 from BrandrdXMusic.core.call import Hotty
 from BrandrdXMusic.utils import seconds_to_min, time_to_seconds
 from BrandrdXMusic.utils.channelplay import get_channeplayCB
@@ -106,6 +107,7 @@ async def play_commnd(
                     forceplay=fplay,
                 )
             except Exception as e:
+                LOGGER(__name__).error("play telegram audio error: %s", e, exc_info=True)
                 ex_type = type(e).__name__
                 err = e if ex_type == "AssistantErr" else _["general_2"].format(ex_type)
                 return await mystic.edit_text(err)
@@ -150,6 +152,7 @@ async def play_commnd(
                     forceplay=fplay,
                 )
             except Exception as e:
+                LOGGER(__name__).error("play telegram video error: %s", e, exc_info=True)
                 ex_type = type(e).__name__
                 err = e if ex_type == "AssistantErr" else _["general_2"].format(ex_type)
                 return await mystic.edit_text(err)
@@ -369,6 +372,7 @@ async def play_commnd(
                 forceplay=fplay,
             )
         except Exception as e:
+            LOGGER(__name__).error("play_commnd stream error: %s", e, exc_info=True)
             ex_type = type(e).__name__
             err = e if ex_type == "AssistantErr" else _["general_2"].format(ex_type)
             return await mystic.edit_text(err)
@@ -496,6 +500,7 @@ async def play_music(client, CallbackQuery, _):
             forceplay=ffplay,
         )
     except Exception as e:
+        LOGGER(__name__).error("play callback stream error: %s", e, exc_info=True)
         ex_type = type(e).__name__
         err = e if ex_type == "AssistantErr" else _["general_2"].format(ex_type)
         return await mystic.edit_text(err)

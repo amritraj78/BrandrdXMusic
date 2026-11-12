@@ -115,14 +115,15 @@ async def stream(
             else:
                 if not forceplay:
                     db[chat_id] = []
-                status = True if video else None
                 try:
                     file_path, direct = await YouTube.download(
                         vidid, mystic, video=status, videoid=True
                     )
-                except:
-                    LOGGER(__name__).error("stream: unhandled exception", exc_info=True)
-                    await mystic.edit_text(_["play_3"])
+                except Exception as e:
+                    LOGGER(__name__).error("stream: unhandled exception %s", e, exc_info=True)
+                    continue
+                if not file_path:
+                    continue
                 await Hotty.join_call(
                     chat_id,
                     original_chat_id,
@@ -186,9 +187,12 @@ async def stream(
             file_path, direct = await YouTube.download(
                 vidid, mystic, videoid=True, video=status
             )
-        except:
-            LOGGER(__name__).error("stream: unhandled exception", exc_info=True)
-            await mystic.edit_text(_["play_3"])
+        except Exception as e:
+            LOGGER(__name__).error("stream: YouTube.download error: %s", e, exc_info=True)
+            return await mystic.edit_text(_["play_3"])
+        if not file_path:
+            LOGGER(__name__).error("stream: YouTube.download returned None for %s", vidid)
+            return await mystic.edit_text(_["play_3"])
         if await is_active_chat(chat_id):
             await put_queue(
                 chat_id,

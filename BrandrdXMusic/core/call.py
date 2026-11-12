@@ -190,9 +190,12 @@ class Call(PyTgCalls):
 
     async def _assistant_join(self, assistant, chat_id: int, stream, _):
         try:
-            await assistant.play(
-                chat_id, stream, config=GroupCallConfig(auto_start=False)
-            )
+            try:
+                await assistant.play(chat_id, stream)
+            except TypeError:
+                await assistant.play(
+                    chat_id, stream, config=GroupCallConfig(auto_start=False)
+                )
         except NoActiveGroupCall:
             LOGGER(__name__).error("_assistant_join: unhandled exception", exc_info=True)
             raise AssistantErr(_["call_8"])
@@ -405,12 +408,20 @@ class Call(PyTgCalls):
         await assistant.play(chat_id, stream)
 
     async def stream_call(self, link):
+        if not link:
+            return
         assistant = await group_assistant(self, config.LOGGER_ID)
-        await assistant.play(
-            config.LOGGER_ID,
-            _video_stream(link),
-            config=GroupCallConfig(auto_start=False),
-        )
+        try:
+            await assistant.play(
+                config.LOGGER_ID,
+                _video_stream(link),
+            )
+        except TypeError:
+            await assistant.play(
+                config.LOGGER_ID,
+                _video_stream(link),
+                config=GroupCallConfig(auto_start=False),
+            )
         await asyncio.sleep(0.2)
         await assistant.leave_call(config.LOGGER_ID)
 
@@ -422,6 +433,9 @@ class Call(PyTgCalls):
         video: Union[bool, str] = None,
         image: Union[bool, str] = None,
     ):
+        if not link:
+            LOGGER(__name__).error("join_call called with empty/None link for chat %s", chat_id)
+            raise AssistantErr("Failed to stream: media source could not be resolved.")
         assistant = await group_assistant(self, chat_id)
         language = await get_lang(chat_id)
         _ = get_string(language)

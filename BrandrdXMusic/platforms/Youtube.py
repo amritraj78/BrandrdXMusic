@@ -7,6 +7,7 @@ import yt_dlp
 from pyrogram.enums import MessageEntityType
 from pyrogram.types import Message
 from py_yt import VideosSearch
+from BrandrdXMusic.logging import LOGGER
 
 API_URL = os.environ.get("API_URL", "")
 API_KEY = os.environ.get("API_KEY", os.environ.get("SAPI_KEY", ""))
@@ -44,14 +45,15 @@ async def download_song(link: str) -> str:
                                 f.write(chunk)
             if os.path.exists(file_path) and os.path.getsize(file_path) > 0:
                 return file_path
-        except Exception:
+        except Exception as e:
+            LOGGER(__name__).warning("External API download failed: %s", e)
             if os.path.exists(file_path):
                 try:
                     os.remove(file_path)
                 except Exception:
                     pass
 
-    # 2. Fallback to direct yt-dlp download
+    # 2. Try yt-dlp file download
     try:
         loop = asyncio.get_event_loop()
         def _ytdl_audio():
@@ -63,6 +65,11 @@ async def download_song(link: str) -> str:
                 "quiet": True,
                 "no_warnings": True,
                 "prefer_ffmpeg": True,
+                "extractor_args": {
+                    "youtube": {
+                        "player_client": ["android", "ios", "mweb"],
+                    }
+                },
                 "postprocessors": [
                     {
                         "key": "FFmpegExtractAudio",
@@ -73,17 +80,47 @@ async def download_song(link: str) -> str:
             }
             with yt_dlp.YoutubeDL(ydl_opts) as ydl:
                 ydl.download([f"https://www.youtube.com/watch?v={video_id}"])
-            return file_path
+            if os.path.exists(file_path) and os.path.getsize(file_path) > 0:
+                return file_path
+            for fname in os.listdir(DOWNLOAD_DIR):
+                if fname.startswith(video_id):
+                    p = os.path.join(DOWNLOAD_DIR, fname)
+                    if os.path.getsize(p) > 0:
+                        return p
+            return None
 
         res = await loop.run_in_executor(None, _ytdl_audio)
-        if os.path.exists(res) and os.path.getsize(res) > 0:
+        if res and os.path.exists(res) and os.path.getsize(res) > 0:
             return res
-    except Exception:
-        if os.path.exists(file_path):
-            try:
-                os.remove(file_path)
-            except Exception:
-                pass
+    except Exception as e:
+        LOGGER(__name__).warning("yt-dlp file download failed: %s", e)
+
+    # 3. Fallback to direct stream URL
+    try:
+        loop = asyncio.get_event_loop()
+        def _extract_url():
+            ydl_opts = {
+                "format": "bestaudio/best",
+                "geo_bypass": True,
+                "nocheckcertificate": True,
+                "quiet": True,
+                "no_warnings": True,
+                "extractor_args": {
+                    "youtube": {
+                        "player_client": ["android", "ios", "mweb"],
+                    }
+                },
+            }
+            with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+                info = ydl.extract_info(f"https://www.youtube.com/watch?v={video_id}", download=False)
+                return info.get("url")
+
+        direct_url = await loop.run_in_executor(None, _extract_url)
+        if direct_url:
+            return direct_url
+    except Exception as e:
+        LOGGER(__name__).error("yt-dlp stream URL extraction failed: %s", e)
+
     return None
 
 
@@ -112,39 +149,83 @@ async def download_video(link: str) -> str:
                                 f.write(chunk)
             if os.path.exists(file_path) and os.path.getsize(file_path) > 0:
                 return file_path
-        except Exception:
+        except Exception as e:
+            LOGGER(__name__).warning("External API video download failed: %s", e)
             if os.path.exists(file_path):
                 try:
                     os.remove(file_path)
                 except Exception:
                     pass
 
-    # 2. Fallback to direct yt-dlp download
+    # 2. Try yt-dlp video download
     try:
         loop = asyncio.get_event_loop()
         def _ytdl_video():
             ydl_opts = {
-                "format": "best[ext=mp4]/best",
-                "outtmpl": file_path,
+                "format": "bestvideo[height<=720]+bestaudio/best[height<=720]/best",
+                "outtmpl": os.path.join(DOWNLOAD_DIR, f"{video_id}.%(ext)s"),
                 "geo_bypass": True,
                 "nocheckcertificate": True,
                 "quiet": True,
                 "no_warnings": True,
+                "prefer_ffmpeg": True,
+                "extractor_args": {
+                    "youtube": {
+                        "player_client": ["android", "ios", "mweb"],
+                    }
+                },
+                "postprocessors": [
+                    {
+                        "key": "FFmpegVideoConvertor",
+                        "preferedformat": "mp4",
+                    }
+                ],
             }
             with yt_dlp.YoutubeDL(ydl_opts) as ydl:
                 ydl.download([f"https://www.youtube.com/watch?v={video_id}"])
-            return file_path
+            if os.path.exists(file_path) and os.path.getsize(file_path) > 0:
+                return file_path
+            for fname in os.listdir(DOWNLOAD_DIR):
+                if fname.startswith(video_id):
+                    p = os.path.join(DOWNLOAD_DIR, fname)
+                    if os.path.getsize(p) > 0:
+                        return p
+            return None
 
         res = await loop.run_in_executor(None, _ytdl_video)
-        if os.path.exists(res) and os.path.getsize(res) > 0:
+        if res and os.path.exists(res) and os.path.getsize(res) > 0:
             return res
-    except Exception:
-        if os.path.exists(file_path):
-            try:
-                os.remove(file_path)
-            except Exception:
-                pass
+    except Exception as e:
+        LOGGER(__name__).warning("yt-dlp video download failed: %s", e)
+
+    # 3. Fallback: extract direct stream URL
+    try:
+        loop = asyncio.get_event_loop()
+        def _extract_video_url():
+            ydl_opts = {
+                "format": "bestvideo[height<=720]+bestaudio/best[height<=720]/best",
+                "geo_bypass": True,
+                "nocheckcertificate": True,
+                "quiet": True,
+                "no_warnings": True,
+                "extractor_args": {
+                    "youtube": {
+                        "player_client": ["android", "ios", "mweb"],
+                    }
+                },
+            }
+            with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+                info = ydl.extract_info(f"https://www.youtube.com/watch?v={video_id}", download=False)
+                return info.get("url")
+
+        direct_url = await loop.run_in_executor(None, _extract_video_url)
+        if direct_url:
+            return direct_url
+    except Exception as e:
+        LOGGER(__name__).error("yt-dlp video stream URL extraction failed: %s", e)
+
     return None
+
 
 
 class YouTubeAPI:
