@@ -20,7 +20,7 @@ telegraph
 unidecode
 yt-dlp
 py-yt-search
-ntgcalls==3.0.3
+ntgcalls==3.0.6
 lyricsgenius==3.0.0
 requests
 pyDes==2.0.1
