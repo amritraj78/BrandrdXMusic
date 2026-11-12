@@ -76,8 +76,11 @@ def get_yt_title_oembed(vid: str) -> str:
 
 def download_from_saavn_sync(query: str, file_path: str) -> bool:
     try:
-        from pyDes import des, ECB, PAD_PKCS5
-    except ImportError:
+        try:
+            from pyDes import des, ECB, PAD_PKCS5
+        except ImportError:
+            from BrandrdXMusic.utils.des import des, ECB, PAD_PKCS5
+    except Exception:
         return False
     try:
         search_query = re.sub(r"[^\w\s]", " ", query).strip()
@@ -119,7 +122,104 @@ def download_from_saavn_sync(query: str, file_path: str) -> bool:
         return False
 
 
-async def download_song(link: str, title: str = None) -> str:
+def get_saavn_direct_stream_url(query: str):
+    """Extract direct 320kbps CDN stream URL from JioSaavn in ~300ms without downloading."""
+    try:
+        try:
+            from pyDes import des, ECB, PAD_PKCS5
+        except ImportError:
+            from BrandrdXMusic.utils.des import des, ECB, PAD_PKCS5
+    except Exception:
+        return None
+    try:
+        search_query = re.sub(r"[^\w\s]", " ", query).strip()
+        search_url = f"https://www.jiosaavn.com/api.php?__call=autocomplete.get&_format=json&_marker=0&cc=in&includeMetaTags=1&query={urllib.parse.quote(search_query)}"
+        req = urllib.request.Request(search_url, headers={"User-Agent": "Mozilla/5.0"})
+        with urllib.request.urlopen(req, timeout=5) as resp:
+            data = json.loads(resp.read().decode("utf-8"))
+            songs = data.get("songs", {}).get("data", [])
+            if not songs:
+                return None
+            song_id = songs[0].get("id")
+
+        detail_url = f"https://www.jiosaavn.com/api.php?__call=song.getDetails&cc=in&_marker=0&_format=json&pids={song_id}"
+        req = urllib.request.Request(detail_url, headers={"User-Agent": "Mozilla/5.0"})
+        with urllib.request.urlopen(req, timeout=5) as resp:
+            data = json.loads(resp.read().decode("utf-8"))
+            song_info = data.get(song_id, {})
+            enc_url = song_info.get("encrypted_media_url")
+            if not enc_url:
+                vlink = song_info.get("vlink")
+                return vlink if vlink else None
+
+        des_key = b"38346591"
+        des_cipher = des(des_key, ECB, b"\0\0\0\0\0\0\0\0", pad=None, padmode=PAD_PKCS5)
+        enc_url_bytes = base64.b64decode(enc_url.strip())
+        dec_bytes = des_cipher.decrypt(enc_url_bytes, padmode=PAD_PKCS5)
+        media_url = dec_bytes.decode("utf-8").replace("_96.mp4", "_320.mp4")
+        return media_url
+    except Exception as e:
+        LOGGER(__name__).warning("JioSaavn direct stream URL error: %s", e)
+        return None
+
+
+def get_sc_direct_stream_url(search_term: str):
+    """Extract direct stream URL from SoundCloud via yt-dlp in ~700ms without downloading."""
+    sc_opts = {
+        "format": "bestaudio/best",
+        "geo_bypass": True,
+        "nocheckcertificate": True,
+        "quiet": True,
+        "no_warnings": True,
+    }
+    try:
+        with yt_dlp.YoutubeDL(sc_opts) as ydl:
+            info = ydl.extract_info(f"scsearch1:{search_term}", download=False)
+            if info and info.get("entries"):
+                return info["entries"][0].get("url")
+    except Exception as e:
+        LOGGER(__name__).warning("SoundCloud direct stream URL failed: %s", e)
+    return None
+
+
+async def get_direct_stream_url(link: str, title: str = None) -> Union[str, None]:
+    """Resolve direct CDN stream URL (JioSaavn or SoundCloud) for 1-2s instant VC playback."""
+    search_term = title or ""
+    if not search_term or search_term == "Unknown Track":
+        vid = extract_video_id(link)
+        if vid:
+            oembed_ttl = get_yt_title_oembed(vid)
+            search_term = oembed_ttl if oembed_ttl else vid
+        else:
+            search_term = link
+
+    if not search_term or search_term == "Unknown Track":
+        return None
+
+    loop = asyncio.get_event_loop()
+
+    # 1. Try JioSaavn direct CDN (fastest: ~300ms, 320kbps MP4 direct CDN stream)
+    try:
+        saavn_url = await loop.run_in_executor(None, get_saavn_direct_stream_url, search_term)
+        if saavn_url and saavn_url.startswith("http"):
+            LOGGER(__name__).info("Direct JioSaavn CDN stream URL acquired for '%s'", search_term)
+            return saavn_url
+    except Exception as e:
+        LOGGER(__name__).warning("get_direct_stream_url JioSaavn error: %s", e)
+
+    # 2. Try SoundCloud direct stream URL (~700ms)
+    try:
+        sc_url = await loop.run_in_executor(None, get_sc_direct_stream_url, search_term)
+        if sc_url and sc_url.startswith("http"):
+            LOGGER(__name__).info("Direct SoundCloud stream URL acquired for '%s'", search_term)
+            return sc_url
+    except Exception as e:
+        LOGGER(__name__).warning("get_direct_stream_url SoundCloud error: %s", e)
+
+    return None
+
+
+async def download_song(link: str, title: str = None, direct_stream: bool = False) -> str:
     raw_id = extract_video_id(link)
     video_id = re.sub(r"[^a-zA-Z0-9_-]", "", raw_id) if raw_id else ""
     if not video_id or len(video_id) < 3:
@@ -129,6 +229,12 @@ async def download_song(link: str, title: str = None) -> str:
     file_path = os.path.join(DOWNLOAD_DIR, f"{video_id}.mp3")
     if os.path.exists(file_path) and os.path.getsize(file_path) > 0:
         return file_path
+
+    # If direct_stream is requested (e.g. for instant 1-2s VC playback), resolve CDN stream URL first!
+    if direct_stream:
+        direct_url = await get_direct_stream_url(link, title=title)
+        if direct_url:
+            return direct_url
 
     # 1. Try external API if configured
     if API_URL:
@@ -703,6 +809,7 @@ class YouTubeAPI:
         songvideo: Union[bool, str] = None,
         format_id: Union[bool, str] = None,
         title: Union[bool, str] = None,
+        direct_stream: bool = False,
     ) -> str:
         if videoid:
             vid = link
@@ -720,7 +827,7 @@ class YouTubeAPI:
             if video:
                 downloaded_file = await download_video(link, title=title)
             else:
-                downloaded_file = await download_song(link, title=title)
+                downloaded_file = await download_song(link, title=title, direct_stream=direct_stream)
             if downloaded_file:
                 return downloaded_file, True
             return None, False

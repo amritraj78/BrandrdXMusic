@@ -117,7 +117,7 @@ async def stream(
                     db[chat_id] = []
                 try:
                     file_path, direct = await YouTube.download(
-                        vidid, mystic, video=status, videoid=True, title=title
+                        vidid, mystic, video=status, videoid=True, title=title, direct_stream=(not status)
                     )
                 except Exception as e:
                     LOGGER(__name__).error("stream: unhandled exception %s", e, exc_info=True)
@@ -162,6 +162,8 @@ async def stream(
         if count == 0:
             return
         else:
+            # Gapless Pre-caching: trigger next track pre-caching for playlist
+            await Hotty.precache_next_track(chat_id)
             link = await HottyBin(msg)
             lines = msg.count("\n")
             if lines >= 17:
@@ -185,12 +187,12 @@ async def stream(
         status = True if video else None
         try:
             file_path, direct = await YouTube.download(
-                vidid, mystic, videoid=True, video=status, title=title
+                vidid, mystic, videoid=True, video=status, title=title, direct_stream=(not status)
             )
             if not file_path and status:
                 LOGGER(__name__).warning("Video download returned None, falling back to audio...")
                 file_path, direct = await YouTube.download(
-                    vidid, mystic, videoid=True, video=None, title=title
+                    vidid, mystic, videoid=True, video=None, title=title, direct_stream=True
                 )
                 status = None
                 video = None
@@ -224,6 +226,8 @@ async def stream(
                 user_id,
                 "video" if video else "audio",
             )
+            # Gapless Pre-caching: trigger next track pre-caching immediately in background
+            await Hotty.precache_next_track(chat_id)
             img = await get_thumb(vidid)
             position = len(db.get(chat_id)) - 1
             button = aq_markup(_, chat_id)

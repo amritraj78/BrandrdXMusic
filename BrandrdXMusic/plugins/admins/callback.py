@@ -315,6 +315,8 @@ async def del_back_playlist(client, CallbackQuery, _):
                     mystic,
                     videoid=True,
                     video=status,
+                    title=title,
+                    direct_stream=(not status),
                 )
             except:
                 return await mystic.edit_text(_["call_6"])
@@ -342,6 +344,7 @@ async def del_back_playlist(client, CallbackQuery, _):
             db[chat_id][0]["markup"] = "stream"
             await CallbackQuery.edit_message_text(txt, reply_markup=close_markup(_))
             await mystic.delete()
+            await Hotty.precache_next_track(chat_id)
         elif "index_" in queued:
             try:
                 await Hotty.skip_stream(chat_id, videoid, video=status)
@@ -412,6 +415,7 @@ async def del_back_playlist(client, CallbackQuery, _):
                 db[chat_id][0]["mystic"] = run
                 db[chat_id][0]["markup"] = "stream"
             await CallbackQuery.edit_message_text(txt, reply_markup=close_markup(_))
+            await Hotty.precache_next_track(chat_id)
 
 
 async def markup_timer():

@@ -180,6 +180,67 @@ class Call(PyTgCalls):
         self._prejoin_tasks = {}
         self._prejoin_video = {}
         self._chat_locks = {}
+        self._precache_tasks = {}
+
+    async def precache_next_track(self, chat_id: int):
+        """Pre-downloads or pre-caches the next track in queue in background for gapless playback."""
+        task = self._precache_tasks.get(chat_id)
+        if task is not None and not task.done():
+            return
+        self._precache_tasks[chat_id] = asyncio.create_task(self._do_precache(chat_id))
+
+    async def _do_precache(self, chat_id: int):
+        try:
+            queue = db.get(chat_id)
+            if not queue or len(queue) < 2:
+                return
+
+            next_track = queue[1]
+            queued_file = str(next_track.get("file", ""))
+
+            # If already a valid local file or a direct stream URL, no precache needed
+            if os.path.isfile(queued_file) or queued_file.startswith("http"):
+                return
+            if not queued_file.startswith("vid_"):
+                return
+
+            vidid = next_track.get("vidid")
+            title = next_track.get("title", "")
+            video = str(next_track.get("streamtype", "")) == "video"
+
+            LOGGER(__name__).info(
+                "Gapless Pre-caching next song in background for chat %s: '%s' (%s)",
+                chat_id, title, vidid
+            )
+
+            # Pre-download track to disk in background for 0s gapless transition
+            file_path, direct = await YouTube.download(
+                vidid,
+                videoid=True,
+                video=video,
+                title=title,
+                direct_stream=False,
+            )
+
+            # Ensure queue is still valid and track is still at index 1
+            current_queue = db.get(chat_id)
+            if not current_queue or len(current_queue) < 2:
+                return
+
+            if current_queue[1].get("vidid") == vidid and file_path and os.path.exists(file_path):
+                current_queue[1]["file"] = file_path
+                from config import autoclean
+                if queued_file in autoclean:
+                    autoclean.remove(queued_file)
+                autoclean.append(file_path)
+                LOGGER(__name__).info(
+                    "Gapless Pre-cache complete for chat %s! Next track '%s' cached to %s",
+                    chat_id, title, file_path
+                )
+        except Exception as e:
+            LOGGER(__name__).warning("precache_next_track error for chat %s: %s", chat_id, e)
+        finally:
+            self._precache_tasks.pop(chat_id, None)
 
     def chat_lock(self, chat_id: int):
         lock = self._chat_locks.get(chat_id)
@@ -261,6 +322,9 @@ class Call(PyTgCalls):
 
     async def stop_stream(self, chat_id: int):
         assistant = await group_assistant(self, chat_id)
+        task = self._precache_tasks.pop(chat_id, None)
+        if task and not task.done():
+            task.cancel()
         try:
             await _clear_(chat_id)
             await assistant.leave_call(chat_id)
@@ -269,6 +333,9 @@ class Call(PyTgCalls):
             pass
 
     async def stop_stream_force(self, chat_id: int):
+        task = self._precache_tasks.pop(chat_id, None)
+        if task and not task.done():
+            task.cancel()
         assistants = [
             (config.STRING1, self.one),
             (config.STRING2, self.two),
@@ -548,6 +615,9 @@ class Call(PyTgCalls):
             if users == 1:
                 autoend[chat_id] = datetime.now() + timedelta(minutes=1)
 
+        # Gapless playback: Pre-cache next song in queue if available
+        await self.precache_next_track(chat_id)
+
     async def change_stream(self, client, chat_id):
         check = db.get(chat_id)
         popped = None
@@ -650,6 +720,8 @@ class Call(PyTgCalls):
                         mystic,
                         videoid=True,
                         video=video,
+                        title=title,
+                        direct_stream=(not video),
                     )
                 except Exception:
                     LOGGER(__name__).error("change_stream: unhandled exception", exc_info=True)
@@ -686,6 +758,8 @@ class Call(PyTgCalls):
                 )
                 db[chat_id][0]["mystic"] = run
                 db[chat_id][0]["markup"] = "stream"
+                # Gapless playback: Pre-cache next song in background
+                await self.precache_next_track(chat_id)
 
             elif "index_" in queued:
                 stream = (
@@ -779,6 +853,9 @@ class Call(PyTgCalls):
                     )
                     db[chat_id][0]["mystic"] = run
                     db[chat_id][0]["markup"] = "stream"
+
+                # Gapless playback: Pre-cache the next upcoming track in background!
+                await self.precache_next_track(chat_id)
 
     async def ping(self):
         pings = []

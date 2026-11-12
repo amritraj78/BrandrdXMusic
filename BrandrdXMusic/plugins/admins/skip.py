@@ -137,6 +137,8 @@ async def skip(cli, message: Message, _, chat_id):
                 mystic,
                 videoid=True,
                 video=status,
+                title=title,
+                direct_stream=(not status),
             )
         except:
             return await mystic.edit_text(_["call_6"])
@@ -163,6 +165,7 @@ async def skip(cli, message: Message, _, chat_id):
         db[chat_id][0]["mystic"] = run
         db[chat_id][0]["markup"] = "stream"
         await mystic.delete()
+        await Hotty.precache_next_track(chat_id)
     elif "index_" in queued:
         try:
             await Hotty.skip_stream(chat_id, videoid, video=status)
@@ -231,3 +234,4 @@ async def skip(cli, message: Message, _, chat_id):
             )
             db[chat_id][0]["mystic"] = run
             db[chat_id][0]["markup"] = "stream"
+        await Hotty.precache_next_track(chat_id)
