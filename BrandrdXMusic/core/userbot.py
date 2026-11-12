@@ -2,7 +2,7 @@ import asyncio
 from os import getenv
 
 from dotenv import load_dotenv
-from pyrogram import Client, filters
+from pyrogram import Client, errors, filters
 from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup, Message
 
 import config
@@ -61,7 +61,12 @@ class Userbot(Client):
         LOGGER(__name__).info("Starting Assistants...")
 
         if config.STRING1:
-            await self.one.start()
+            try:
+                await self.one.start()
+            except errors.FloodWait as e:
+                LOGGER(__name__).warning(f"Assistant 1 hit FloodWait of {e.value}s. Sleeping...")
+                await asyncio.sleep(e.value)
+                await self.one.start()
             try:
                 await self.one.join_chat("amrit_feel")
                 await self.one.join_chat("privatethink")

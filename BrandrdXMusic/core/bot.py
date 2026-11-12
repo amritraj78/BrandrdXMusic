@@ -19,7 +19,12 @@ class Hotty(Client):
         )
 
     async def start(self):
-        await super().start()
+        try:
+            await super().start()
+        except errors.FloodWait as e:
+            LOGGER(__name__).warning(f"Bot hit FloodWait of {e.value}s. Sleeping...")
+            await asyncio.sleep(e.value)
+            await super().start()
         self.id = self.me.id
         self.name = self.me.first_name + " " + (self.me.last_name or "")
         self.username = self.me.username
