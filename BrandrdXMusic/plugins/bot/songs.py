@@ -109,22 +109,21 @@ async def song_helper_cb(client, callback_query: CallbackQuery, _):
             formats_available, link = await YouTube.formats(
                 vidid, True
             )
-        except:
+        except Exception as e:
+            LOGGER(__name__).error("formats error: %s", e)
             return await callback_query.edit_message_text(_["song_7"])
         keyboard = InlineKeyboardMarkup(inline_keyboard=[])
         done = []
         for x in formats_available:
-            check = x["format"]
-            if "audio" in check:
-                if x["filesize"] is None:
-                    continue
-                form = x["format_note"].title()
+            check = x.get("format", "")
+            if "audio" in check or "mp3" in check:
+                form = str(x.get("format_note", "Standard")).title()
                 if form not in done:
                     done.append(form)
                 else:
                     continue
-                sz = convert_bytes(x["filesize"])
-                fom = x["format_id"]
+                sz = convert_bytes(x["filesize"]) if x.get("filesize") else "Audio"
+                fom = x.get("format_id", "bestaudio")
                 keyboard.inline_keyboard.append(
                     [
                         InlineKeyboardButton(
@@ -133,6 +132,15 @@ async def song_helper_cb(client, callback_query: CallbackQuery, _):
                         ),
                     ]
                 )
+        if not keyboard.inline_keyboard:
+            keyboard.inline_keyboard.append(
+                [
+                    InlineKeyboardButton(
+                        text="Download Audio (MP3)",
+                        callback_data=f"song_download {stype}|bestaudio|{vidid}",
+                    ),
+                ]
+            )
         keyboard.inline_keyboard.append(
             [
                 InlineKeyboardButton(
@@ -154,24 +162,35 @@ async def song_helper_cb(client, callback_query: CallbackQuery, _):
                 vidid, True
             )
         except Exception as e:
-            print(e)
+            LOGGER(__name__).error("formats video error: %s", e)
             return await callback_query.edit_message_text(_["song_7"])
         keyboard = InlineKeyboardMarkup(inline_keyboard=[])
-        done = [160, 133, 134, 135, 136, 137, 298, 299, 264, 304, 266]
+        done = [160, 133, 134, 135, 136, 137, 298, 299, 264, 304, 266, 18, 22]
         for x in formats_available:
-            check = x["format"]
-            if x["filesize"] is None:
-                continue
-            if int(x["format_id"]) not in done:
-                continue
-            sz = convert_bytes(x["filesize"])
-            ap = check.split("-")[1]
+            check = x.get("format", "")
+            fid = x.get("format_id", "")
+            try:
+                if int(fid) not in done:
+                    continue
+            except (ValueError, TypeError):
+                pass
+            sz = convert_bytes(x["filesize"]) if x.get("filesize") else "Video"
+            ap = check.split("-")[1] if "-" in check else x.get("format_note", "MP4")
             to = f"{ap} = {sz}"
             keyboard.inline_keyboard.append(
                 [
                     InlineKeyboardButton(
                         text=to,
-                        callback_data=f"song_download {stype}|{x['format_id']}|{vidid}",
+                        callback_data=f"song_download {stype}|{fid}|{vidid}",
+                    ),
+                ]
+            )
+        if not keyboard.inline_keyboard:
+            keyboard.inline_keyboard.append(
+                [
+                    InlineKeyboardButton(
+                        text="Download Video (MP4)",
+                        callback_data=f"song_download {stype}|best|{vidid}",
                     ),
                 ]
             )
@@ -207,24 +226,31 @@ async def song_download_cb(client, callback_query: CallbackQuery, _) :
     stype, format_id, vidid = callback_request.split("|")
     mystic = await callback_query.edit_message_text(_["song_8"])
     yturl = f"https://www.youtube.com/watch?v={vidid}"
-    with yt_dlp.YoutubeDL({"quiet": True}) as ytdl:
-        x = ytdl.extract_info(yturl, download=False)
-    title = (x["title"]).title()
+    try:
+        title, duration_min, duration_sec, thumbnail, _ = await YouTube.details(vidid, True)
+    except Exception:
+        title = "Track"
+        duration_sec = 0
     title = re.sub(r"\W+", " ", title)
-    thumb_image_path = await callback_query.message.download()
-    duration = x["duration"]
-    if stype == "video":
+    try:
         thumb_image_path = await callback_query.message.download()
-        width = callback_query.message.photo.width
-        height = callback_query.message.photo.height
+    except Exception:
+        thumb_image_path = None
+    duration = duration_sec
+    if stype == "video":
+        width = getattr(callback_query.message.photo, "width", 1280) if callback_query.message.photo else 1280
+        height = getattr(callback_query.message.photo, "height", 720) if callback_query.message.photo else 720
         try:
-            file_path = await YouTube.download(
+            download_res = await YouTube.download(
                 yturl,
                 mystic,
-                songvideo=True,
+                video=True,
                 format_id=format_id,
                 title=title,
             )
+            file_path = download_res[0] if isinstance(download_res, tuple) else download_res
+            if not file_path:
+                return await mystic.edit_text(_["song_9"].format("Download failed"))
         except Exception as e:
             return await mystic.edit_text(_["song_9"].format(e))
         med = InputMediaVideo(
@@ -244,18 +270,25 @@ async def song_download_cb(client, callback_query: CallbackQuery, _) :
         try:
             await callback_query.edit_message_media(media=med)
         except Exception as e:
-            print(e)
+            LOGGER(__name__).error("upload video error: %s", e)
             return await mystic.edit_text(_["song_10"])
-        os.remove(file_path)
+        try:
+            if os.path.exists(file_path):
+                os.remove(file_path)
+        except Exception:
+            pass
     elif stype == "audio":
         try:
-            filename = await YouTube.download(
+            download_res = await YouTube.download(
                 yturl,
                 mystic,
-                songaudio=True,
+                video=False,
                 format_id=format_id,
                 title=title,
             )
+            filename = download_res[0] if isinstance(download_res, tuple) else download_res
+            if not filename:
+                return await mystic.edit_text(_["song_9"].format("Download failed"))
         except Exception as e:
             return await mystic.edit_text(_["song_9"].format(e))
         med = InputMediaAudio(
@@ -263,7 +296,7 @@ async def song_download_cb(client, callback_query: CallbackQuery, _) :
             caption=title,
             thumb=thumb_image_path,
             title=title,
-            performer=x["uploader"],
+            performer="BrandrdXMusic",
         )
         await mystic.edit_text(_["song_11"])
         await app.send_chat_action(
@@ -273,6 +306,10 @@ async def song_download_cb(client, callback_query: CallbackQuery, _) :
         try:
             await callback_query.edit_message_media(media=med)
         except Exception as e:
-            print(e)
+            LOGGER(__name__).error("upload audio error: %s", e)
             return await mystic.edit_text(_["song_10"])
-        os.remove(filename)
+        try:
+            if os.path.exists(filename):
+                os.remove(filename)
+        except Exception:
+            pass

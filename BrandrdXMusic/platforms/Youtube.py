@@ -14,16 +14,50 @@ API_KEY = os.environ.get("API_KEY", os.environ.get("SAPI_KEY", ""))
 
 DOWNLOAD_DIR = "downloads"
 
+COMMON_YTDL_OPTS = {
+    "geo_bypass": True,
+    "nocheckcertificate": True,
+    "quiet": True,
+    "no_warnings": True,
+    "extractor_args": {
+        "youtube": {
+            "player_client": ["android", "ios", "mweb"],
+        }
+    },
+}
+
 
 def time_to_seconds(time):
     stringt = str(time)
     return sum(int(x) * 60 ** i for i, x in enumerate(reversed(stringt.split(":"))))
 
 
+def extract_video_id(link: str) -> str:
+    if not link:
+        return ""
+    link = str(link).strip()
+    if len(link) == 11 and re.match(r"^[a-zA-Z0-9_-]{11}$", link):
+        return link
+    patterns = [
+        r"(?:v=|\/v\/|embed\/|shorts\/|youtu\.be\/|live\/)([a-zA-Z0-9_-]{11})",
+        r"^([a-zA-Z0-9_-]{11})$",
+    ]
+    for pattern in patterns:
+        m = re.search(pattern, link)
+        if m:
+            return m.group(1)
+    if "v=" in link:
+        return link.split("v=")[-1].split("&")[0]
+    if "youtu.be/" in link:
+        return link.split("youtu.be/")[-1].split("?")[0]
+    return link
+
+
 async def download_song(link: str) -> str:
-    video_id = link.split("v=")[-1].split("&")[0] if "v=" in link else link
+    raw_id = extract_video_id(link)
+    video_id = re.sub(r"[^a-zA-Z0-9_-]", "", raw_id) if raw_id else ""
     if not video_id or len(video_id) < 3:
-        return None
+        video_id = "song_" + str(abs(hash(link)))[:8]
 
     os.makedirs(DOWNLOAD_DIR, exist_ok=True)
     file_path = os.path.join(DOWNLOAD_DIR, f"{video_id}.mp3")
@@ -53,23 +87,17 @@ async def download_song(link: str) -> str:
                 except Exception:
                     pass
 
+    yt_target = f"https://www.youtube.com/watch?v={video_id}" if len(video_id) == 11 else link
+
     # 2. Try yt-dlp file download
     try:
         loop = asyncio.get_event_loop()
         def _ytdl_audio():
-            ydl_opts = {
+            ydl_opts = dict(COMMON_YTDL_OPTS)
+            ydl_opts.update({
                 "format": "bestaudio/best",
                 "outtmpl": os.path.join(DOWNLOAD_DIR, f"{video_id}.%(ext)s"),
-                "geo_bypass": True,
-                "nocheckcertificate": True,
-                "quiet": True,
-                "no_warnings": True,
                 "prefer_ffmpeg": True,
-                "extractor_args": {
-                    "youtube": {
-                        "player_client": ["android", "ios", "mweb"],
-                    }
-                },
                 "postprocessors": [
                     {
                         "key": "FFmpegExtractAudio",
@@ -77,9 +105,9 @@ async def download_song(link: str) -> str:
                         "preferredquality": "192",
                     }
                 ],
-            }
+            })
             with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-                ydl.download([f"https://www.youtube.com/watch?v={video_id}"])
+                ydl.download([yt_target])
             if os.path.exists(file_path) and os.path.getsize(file_path) > 0:
                 return file_path
             for fname in os.listdir(DOWNLOAD_DIR):
@@ -99,20 +127,10 @@ async def download_song(link: str) -> str:
     try:
         loop = asyncio.get_event_loop()
         def _extract_url():
-            ydl_opts = {
-                "format": "bestaudio/best",
-                "geo_bypass": True,
-                "nocheckcertificate": True,
-                "quiet": True,
-                "no_warnings": True,
-                "extractor_args": {
-                    "youtube": {
-                        "player_client": ["android", "ios", "mweb"],
-                    }
-                },
-            }
+            ydl_opts = dict(COMMON_YTDL_OPTS)
+            ydl_opts["format"] = "bestaudio/best"
             with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-                info = ydl.extract_info(f"https://www.youtube.com/watch?v={video_id}", download=False)
+                info = ydl.extract_info(yt_target, download=False)
                 return info.get("url")
 
         direct_url = await loop.run_in_executor(None, _extract_url)
@@ -125,9 +143,10 @@ async def download_song(link: str) -> str:
 
 
 async def download_video(link: str) -> str:
-    video_id = link.split("v=")[-1].split("&")[0] if "v=" in link else link
+    raw_id = extract_video_id(link)
+    video_id = re.sub(r"[^a-zA-Z0-9_-]", "", raw_id) if raw_id else ""
     if not video_id or len(video_id) < 3:
-        return None
+        video_id = "video_" + str(abs(hash(link)))[:8]
 
     os.makedirs(DOWNLOAD_DIR, exist_ok=True)
     file_path = os.path.join(DOWNLOAD_DIR, f"{video_id}.mp4")
@@ -157,32 +176,26 @@ async def download_video(link: str) -> str:
                 except Exception:
                     pass
 
+    yt_target = f"https://www.youtube.com/watch?v={video_id}" if len(video_id) == 11 else link
+
     # 2. Try yt-dlp video download
     try:
         loop = asyncio.get_event_loop()
         def _ytdl_video():
-            ydl_opts = {
+            ydl_opts = dict(COMMON_YTDL_OPTS)
+            ydl_opts.update({
                 "format": "bestvideo[height<=720]+bestaudio/best[height<=720]/best",
                 "outtmpl": os.path.join(DOWNLOAD_DIR, f"{video_id}.%(ext)s"),
-                "geo_bypass": True,
-                "nocheckcertificate": True,
-                "quiet": True,
-                "no_warnings": True,
                 "prefer_ffmpeg": True,
-                "extractor_args": {
-                    "youtube": {
-                        "player_client": ["android", "ios", "mweb"],
-                    }
-                },
                 "postprocessors": [
                     {
                         "key": "FFmpegVideoConvertor",
                         "preferedformat": "mp4",
                     }
                 ],
-            }
+            })
             with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-                ydl.download([f"https://www.youtube.com/watch?v={video_id}"])
+                ydl.download([yt_target])
             if os.path.exists(file_path) and os.path.getsize(file_path) > 0:
                 return file_path
             for fname in os.listdir(DOWNLOAD_DIR):
@@ -202,20 +215,10 @@ async def download_video(link: str) -> str:
     try:
         loop = asyncio.get_event_loop()
         def _extract_video_url():
-            ydl_opts = {
-                "format": "bestvideo[height<=720]+bestaudio/best[height<=720]/best",
-                "geo_bypass": True,
-                "nocheckcertificate": True,
-                "quiet": True,
-                "no_warnings": True,
-                "extractor_args": {
-                    "youtube": {
-                        "player_client": ["android", "ios", "mweb"],
-                    }
-                },
-            }
+            ydl_opts = dict(COMMON_YTDL_OPTS)
+            ydl_opts["format"] = "bestvideo[height<=720]+bestaudio/best[height<=720]/best"
             with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-                info = ydl.extract_info(f"https://www.youtube.com/watch?v={video_id}", download=False)
+                info = ydl.extract_info(yt_target, download=False)
                 return info.get("url")
 
         direct_url = await loop.run_in_executor(None, _extract_video_url)
@@ -262,41 +265,63 @@ class YouTubeAPI:
             link = self.base + link
         if "&" in link:
             link = link.split("&")[0]
-        results = VideosSearch(link, limit=1)
-        for result in (await results.next())["result"]:
-            title = result["title"]
-            duration_min = result["duration"]
-            thumbnail = result["thumbnails"][0]["url"].split("?")[0]
-            vidid = result["id"]
-            duration_sec = int(time_to_seconds(duration_min)) if duration_min else 0
-        return title, duration_min, duration_sec, thumbnail, vidid
+
+        # 1. Try VideosSearch
+        try:
+            results = VideosSearch(link, limit=1)
+            res = (await results.next()).get("result")
+            if res and len(res) > 0:
+                result = res[0]
+                title = result.get("title", "Unknown Track")
+                duration_min = result.get("duration", "0:00")
+                thumbnail = result.get("thumbnails", [{}])[0].get("url", "").split("?")[0]
+                vidid = result.get("id") or extract_video_id(link)
+                duration_sec = int(time_to_seconds(duration_min)) if duration_min else 0
+                return title, duration_min, duration_sec, thumbnail, vidid
+        except Exception as e:
+            LOGGER(__name__).warning("VideosSearch failed in details: %s", e)
+
+        # 2. Fallback to yt-dlp flat extract
+        try:
+            loop = asyncio.get_event_loop()
+            def _extract_details():
+                opts = dict(COMMON_YTDL_OPTS)
+                opts["extract_flat"] = True
+                with yt_dlp.YoutubeDL(opts) as ydl:
+                    target = link if (link.startswith("http://") or link.startswith("https://")) else f"ytsearch1:{link}"
+                    info = ydl.extract_info(target, download=False)
+                    if info and info.get("entries"):
+                        info = info["entries"][0]
+                    if info:
+                        vid = info.get("id") or extract_video_id(link)
+                        ttl = info.get("title") or "Unknown Track"
+                        dur = int(info.get("duration") or 0)
+                        d_min = f"{dur // 60}:{dur % 60:02d}"
+                        thumb = info.get("thumbnail") or f"https://img.youtube.com/vi/{vid}/hqdefault.jpg"
+                        return ttl, d_min, dur, thumb, vid
+                    return None
+
+            ytdl_res = await loop.run_in_executor(None, _extract_details)
+            if ytdl_res:
+                return ytdl_res
+        except Exception as e:
+            LOGGER(__name__).warning("yt-dlp fallback failed in details: %s", e)
+
+        # 3. Final default fallback
+        vid = extract_video_id(link) or "unknown"
+        return "Unknown Track", "0:00", 0, f"https://img.youtube.com/vi/{vid}/hqdefault.jpg", vid
 
     async def title(self, link: str, videoid: Union[bool, str] = None):
-        if videoid:
-            link = self.base + link
-        if "&" in link:
-            link = link.split("&")[0]
-        results = VideosSearch(link, limit=1)
-        for result in (await results.next())["result"]:
-            return result["title"]
+        t, _, _, _, _ = await self.details(link, videoid)
+        return t
 
     async def duration(self, link: str, videoid: Union[bool, str] = None):
-        if videoid:
-            link = self.base + link
-        if "&" in link:
-            link = link.split("&")[0]
-        results = VideosSearch(link, limit=1)
-        for result in (await results.next())["result"]:
-            return result["duration"]
+        _, d, _, _, _ = await self.details(link, videoid)
+        return d
 
     async def thumbnail(self, link: str, videoid: Union[bool, str] = None):
-        if videoid:
-            link = self.base + link
-        if "&" in link:
-            link = link.split("&")[0]
-        results = VideosSearch(link, limit=1)
-        for result in (await results.next())["result"]:
-            return result["thumbnails"][0]["url"].split("?")[0]
+        _, _, _, thumb, _ = await self.details(link, videoid)
+        return thumb
 
     async def video(self, link: str, videoid: Union[bool, str] = None):
         if videoid:
@@ -332,12 +357,9 @@ class YouTubeAPI:
         try:
             loop = asyncio.get_event_loop()
             def _extract_playlist():
-                ydl_opts = {
-                    "extract_flat": True,
-                    "quiet": True,
-                    "no_warnings": True,
-                }
-                with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+                opts = dict(COMMON_YTDL_OPTS)
+                opts["extract_flat"] = True
+                with yt_dlp.YoutubeDL(opts) as ydl:
                     info = ydl.extract_info(link, download=False)
                     entries = info.get("entries") or []
                     return [e["id"] for e in entries[:limit] if e and "id" in e]
@@ -353,60 +375,159 @@ class YouTubeAPI:
             link = self.base + link
         if "&" in link:
             link = link.split("&")[0]
-        results = VideosSearch(link, limit=1)
-        for result in (await results.next())["result"]:
-            title = result["title"]
-            duration_min = result["duration"]
-            vidid = result["id"]
-            yturl = result["link"]
-            thumbnail = result["thumbnails"][0]["url"].split("?")[0]
-        track_details = {
-            "title": title,
-            "link": yturl,
-            "vidid": vidid,
-            "duration_min": duration_min,
-            "thumb": thumbnail,
-        }
-        return track_details, vidid
+
+        # 1. Try VideosSearch
+        try:
+            results = VideosSearch(link, limit=1)
+            res = (await results.next()).get("result")
+            if res and len(res) > 0:
+                result = res[0]
+                title = result.get("title", "Unknown Track")
+                duration_min = result.get("duration", "0:00")
+                vidid = result.get("id") or extract_video_id(link)
+                yturl = result.get("link") or f"https://www.youtube.com/watch?v={vidid}"
+                thumbnail = result.get("thumbnails", [{}])[0].get("url", "").split("?")[0]
+                track_details = {
+                    "title": title,
+                    "link": yturl,
+                    "vidid": vidid,
+                    "duration_min": duration_min,
+                    "thumb": thumbnail,
+                }
+                return track_details, vidid
+        except Exception as e:
+            LOGGER(__name__).warning("VideosSearch failed in track: %s", e)
+
+        # 2. Fallback to yt-dlp search
+        try:
+            loop = asyncio.get_event_loop()
+            def _search_track():
+                opts = dict(COMMON_YTDL_OPTS)
+                opts["extract_flat"] = True
+                with yt_dlp.YoutubeDL(opts) as ydl:
+                    target = link if (link.startswith("http://") or link.startswith("https://")) else f"ytsearch1:{link}"
+                    info = ydl.extract_info(target, download=False)
+                    if info and info.get("entries"):
+                        info = info["entries"][0]
+                    if info:
+                        vid = info.get("id") or extract_video_id(link)
+                        ttl = info.get("title") or "Unknown Track"
+                        dur = int(info.get("duration") or 0)
+                        d_min = f"{dur // 60}:{dur % 60:02d}"
+                        thumb = info.get("thumbnail") or f"https://img.youtube.com/vi/{vid}/hqdefault.jpg"
+                        return {
+                            "title": ttl,
+                            "link": f"https://www.youtube.com/watch?v={vid}",
+                            "vidid": vid,
+                            "duration_min": d_min,
+                            "thumb": thumb,
+                        }, vid
+                    return None, None
+
+            td, vid = await loop.run_in_executor(None, _search_track)
+            if td and vid:
+                return td, vid
+        except Exception as e:
+            LOGGER(__name__).warning("yt-dlp fallback failed in track: %s", e)
+
+        # 3. Final fallback
+        vid = extract_video_id(link) or "unknown"
+        return {
+            "title": "Unknown Track",
+            "link": f"https://www.youtube.com/watch?v={vid}",
+            "vidid": vid,
+            "duration_min": "0:00",
+            "thumb": f"https://img.youtube.com/vi/{vid}/hqdefault.jpg",
+        }, vid
 
     async def formats(self, link: str, videoid: Union[bool, str] = None):
         if videoid:
             link = self.base + link
         if "&" in link:
             link = link.split("&")[0]
-        ytdl_opts = {"quiet": True}
-        ydl = yt_dlp.YoutubeDL(ytdl_opts)
-        with ydl:
+
+        loop = asyncio.get_event_loop()
+        def _extract_formats():
+            opts = dict(COMMON_YTDL_OPTS)
             formats_available = []
-            r = ydl.extract_info(link, download=False)
-            for format in r["formats"]:
-                try:
-                    if "dash" not in str(format["format"]).lower():
-                        formats_available.append(
-                            {
-                                "format": format["format"],
-                                "filesize": format.get("filesize"),
-                                "format_id": format["format_id"],
-                                "ext": format["ext"],
-                                "format_note": format["format_note"],
-                                "yturl": link,
-                            }
-                        )
-                except Exception:
-                    continue
-        return formats_available, link
+            with yt_dlp.YoutubeDL(opts) as ydl:
+                r = ydl.extract_info(link, download=False)
+                for fmt in r.get("formats", []):
+                    try:
+                        if "dash" not in str(fmt.get("format", "")).lower():
+                            sz = fmt.get("filesize") or fmt.get("filesize_approx")
+                            formats_available.append(
+                                {
+                                    "format": fmt.get("format", ""),
+                                    "filesize": sz if sz else 5000000,
+                                    "format_id": fmt.get("format_id", "best"),
+                                    "ext": fmt.get("ext", "mp4"),
+                                    "format_note": fmt.get("format_note", "Standard"),
+                                    "yturl": link,
+                                }
+                            )
+                    except Exception:
+                        continue
+            return formats_available
+
+        try:
+            formats_available = await loop.run_in_executor(None, _extract_formats)
+            if formats_available:
+                return formats_available, link
+        except Exception as e:
+            LOGGER(__name__).error("formats extraction failed: %s", e)
+
+        # Robust fallback formats so /song format buttons never fail
+        vid = extract_video_id(link)
+        yt_url = f"https://www.youtube.com/watch?v={vid}" if vid else link
+        fallback_formats = [
+            {
+                "format": "audio only (mp3)",
+                "filesize": 4000000,
+                "format_id": "bestaudio",
+                "ext": "mp3",
+                "format_note": "High Quality",
+                "yturl": yt_url,
+            },
+            {
+                "format": "136 - 1280x720 (720p)",
+                "filesize": 15000000,
+                "format_id": "136",
+                "ext": "mp4",
+                "format_note": "720p",
+                "yturl": yt_url,
+            },
+            {
+                "format": "134 - 640x360 (360p)",
+                "filesize": 8000000,
+                "format_id": "134",
+                "ext": "mp4",
+                "format_note": "360p",
+                "yturl": yt_url,
+            },
+        ]
+        return fallback_formats, yt_url
 
     async def slider(self, link: str, query_type: int, videoid: Union[bool, str] = None):
         if videoid:
             link = self.base + link
         if "&" in link:
             link = link.split("&")[0]
-        a = VideosSearch(link, limit=10)
-        result = (await a.next()).get("result")
-        title = result[query_type]["title"]
-        duration_min = result[query_type]["duration"]
-        vidid = result[query_type]["id"]
-        thumbnail = result[query_type]["thumbnails"][0]["url"].split("?")[0]
+        try:
+            a = VideosSearch(link, limit=10)
+            res = (await a.next()).get("result") or []
+            if len(res) > query_type:
+                result = res[query_type]
+                title = result.get("title", "Unknown Track")
+                duration_min = result.get("duration", "0:00")
+                vidid = result.get("id") or extract_video_id(link)
+                thumbnail = result.get("thumbnails", [{}])[0].get("url", "").split("?")[0]
+                return title, duration_min, thumbnail, vidid
+        except Exception as e:
+            LOGGER(__name__).warning("slider error: %s", e)
+
+        # Fallback to single details
+        title, duration_min, _, thumbnail, vidid = await self.details(link)
         return title, duration_min, thumbnail, vidid
 
     async def download(
@@ -430,7 +551,8 @@ class YouTubeAPI:
             if downloaded_file:
                 return downloaded_file, True
             return None, False
-        except Exception:
+        except Exception as e:
+            LOGGER(__name__).error("YouTube.download error: %s", e)
             return None, False
 
 
