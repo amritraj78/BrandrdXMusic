@@ -117,6 +117,8 @@ async def get_queue(client, message: Message, _):
                                 await mystic.edit_reply_markup(reply_markup=buttons)
                             except (FloodWait, MessageNotModified):
                                 pass
+                            except Exception:
+                                break
                         else:
                             pass
                     else:

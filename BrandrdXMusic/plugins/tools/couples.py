@@ -4,7 +4,10 @@ import html
 import asyncio
 from datetime import datetime, timedelta
 
-from telegraph import upload_file
+try:
+    from telegraph import upload_file
+except ImportError:
+    upload_file = None
 from pyrogram.enums import ButtonStyle
 from PIL import Image, ImageDraw, ImageFont
 from pyrogram import *
@@ -384,13 +387,15 @@ sᴇʟᴇᴄᴛᴇᴅ ᴏɴ: {tomorrow}
 
         msg = None
 
-        # UPLOAD TO TELEGRAPH
-        uploaded_files = await asyncio.to_thread(
-            upload_file, output_file
-        )
-
-        for x in uploaded_files:
-            img_url = "https://graph.org/" + x
+        # UPLOAD TO TELEGRAPH (Optional)
+        img_url = ""
+        if upload_file:
+            try:
+                uploaded_files = await asyncio.to_thread(upload_file, output_file)
+                if uploaded_files:
+                    img_url = "https://graph.org/" + uploaded_files[0]
+            except Exception:
+                pass
 
             couple = {
                 "c1_id": c1_id,

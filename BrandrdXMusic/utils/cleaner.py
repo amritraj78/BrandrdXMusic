@@ -3,7 +3,12 @@ import gc
 import time
 import shutil
 import asyncio
-import psutil
+
+try:
+    import psutil
+except ImportError:
+    psutil = None
+
 from BrandrdXMusic import LOGGER
 
 FILE_EXTENSIONS = (
@@ -43,7 +48,7 @@ def clean_storage_and_memory(deep: bool = True) -> dict:
     Safely preserves active stream files and newly cached tracks.
     """
     bytes_freed = 0
-    mem_before = psutil.virtual_memory().used
+    mem_before = psutil.virtual_memory().used if psutil else 0
     now = time.time()
 
     # Track active streaming and queued files so we NEVER delete them
@@ -144,18 +149,20 @@ def clean_storage_and_memory(deep: bool = True) -> dict:
     # 7. Collect garbage & trim memory
     trim_memory()
 
-    mem_after = psutil.virtual_memory().used
+    mem_after = psutil.virtual_memory().used if psutil else 0
     ram_freed = max(0, mem_before - mem_after)
-    vm = psutil.virtual_memory()
-    disk = psutil.disk_usage("/")
+    vm_used = psutil.virtual_memory().used if psutil else 0
+    vm_total = psutil.virtual_memory().total if psutil else 0
+    disk_free = psutil.disk_usage("/").free if psutil else 0
+    disk_total = psutil.disk_usage("/").total if psutil else 0
 
     return {
         "disk_freed_mb": round(bytes_freed / (1024 * 1024), 2),
         "ram_freed_mb": round(ram_freed / (1024 * 1024), 2),
-        "ram_used_mb": round(vm.used / (1024 * 1024), 2),
-        "ram_total_mb": round(vm.total / (1024 * 1024), 2),
-        "free_disk_gb": round(disk.free / (1024 ** 3), 2),
-        "total_disk_gb": round(disk.total / (1024 ** 3), 2),
+        "ram_used_mb": round(vm_used / (1024 * 1024), 2),
+        "ram_total_mb": round(vm_total / (1024 * 1024), 2),
+        "free_disk_gb": round(disk_free / (1024 ** 3), 2),
+        "total_disk_gb": round(disk_total / (1024 ** 3), 2),
     }
 
 

@@ -1,4 +1,7 @@
-import psutil
+try:
+    import psutil
+except ImportError:
+    psutil = None
 from pyrogram import filters
 from pyrogram.enums import ParseMode
 from pyrogram.types import CallbackQuery, InlineKeyboardButton, InlineKeyboardMarkup, Message
@@ -79,15 +82,17 @@ async def clean_deep_cb(_, query: CallbackQuery):
 async def clean_refresh_cb(_, query: CallbackQuery):
     if query.from_user.id != config.OWNER_ID and query.from_user.id not in SUDOERS:
         return await query.answer("❌ Only Owner and Sudo users can use this button!", show_alert=True)
-    vm = psutil.virtual_memory()
-    disk = psutil.disk_usage("/")
+    vm_used = psutil.virtual_memory().used if psutil else 0
+    vm_total = psutil.virtual_memory().total if psutil else 0
+    disk_free = psutil.disk_usage("/").free if psutil else 0
+    disk_total = psutil.disk_usage("/").total if psutil else 0
     data = {
         "disk_freed_mb": 0.0,
         "ram_freed_mb": 0.0,
-        "ram_used_mb": round(vm.used / (1024 * 1024), 2),
-        "ram_total_mb": round(vm.total / (1024 * 1024), 2),
-        "free_disk_gb": round(disk.free / (1024 ** 3), 2),
-        "total_disk_gb": round(disk.total / (1024 ** 3), 2),
+        "ram_used_mb": round(vm_used / (1024 * 1024), 2),
+        "ram_total_mb": round(vm_total / (1024 * 1024), 2),
+        "free_disk_gb": round(disk_free / (1024 ** 3), 2),
+        "total_disk_gb": round(disk_total / (1024 ** 3), 2),
     }
     text = format_clean_text(data, action="Current Stats")
     try:

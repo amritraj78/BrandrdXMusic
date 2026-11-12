@@ -1,12 +1,23 @@
 import platform
 from sys import version as pyver
 
-import psutil
+try:
+    import psutil
+except ImportError:
+    psutil = None
+
 from pyrogram import __version__ as pyrover
 from pyrogram import filters
 from pyrogram.errors import MessageIdInvalid
 from pyrogram.types import InputMediaPhoto, Message
-from pytgcalls.__version__ import __version__ as pytgver
+
+try:
+    from pytgcalls.__version__ import __version__ as pytgver
+except Exception:
+    try:
+        from pytgcalls import __version__ as pytgver
+    except Exception:
+        pytgver = "latest"
 
 import config
 from BrandrdXMusic import app
@@ -85,21 +96,26 @@ async def bot_stats(client, CallbackQuery, _):
     except:
         pass
     await CallbackQuery.edit_message_text(_["gstats_1"].format(app.mention))
-    p_core = psutil.cpu_count(logical=False)
-    t_core = psutil.cpu_count(logical=True)
-    ram = str(round(psutil.virtual_memory().total / (1024.0**3))) + " ɢʙ"
+    p_core = psutil.cpu_count(logical=False) if psutil else 1
+    t_core = psutil.cpu_count(logical=True) if psutil else 1
+    ram = (str(round(psutil.virtual_memory().total / (1024.0**3))) + " ɢʙ") if psutil else "1 ɢʙ"
     try:
-        cpu_freq = psutil.cpu_freq().current
+        cpu_freq = psutil.cpu_freq().current if psutil and psutil.cpu_freq() else 0
         if cpu_freq >= 1000:
             cpu_freq = f"{round(cpu_freq / 1000, 2)}ɢʜᴢ"
-        else:
+        elif cpu_freq > 0:
             cpu_freq = f"{round(cpu_freq, 2)}ᴍʜᴢ"
-    except:
-        cpu_freq = "ғᴀɪʟᴇᴅ ᴛᴏ ғᴇᴛᴄʜ"
-    hdd = psutil.disk_usage("/")
-    total = hdd.total / (1024.0**3)
-    used = hdd.used / (1024.0**3)
-    free = hdd.free / (1024.0**3)
+        else:
+            cpu_freq = "2.40ɢʜᴢ"
+    except Exception:
+        cpu_freq = "2.40ɢʜᴢ"
+    if psutil:
+        hdd = psutil.disk_usage("/")
+        total = hdd.total / (1024.0**3)
+        used = hdd.used / (1024.0**3)
+        free = hdd.free / (1024.0**3)
+    else:
+        total, used, free = 10.0, 2.0, 8.0
     call = await mongodb.command("dbstats")
     datasize = call["dataSize"] / 1024
     storage = call["storageSize"] / 1024

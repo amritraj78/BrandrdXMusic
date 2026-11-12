@@ -23,7 +23,9 @@ async def auto_leave():
                 client = await get_client(num)
                 left = 0
                 try:
-                    async for i in client.get_dialogs():
+                    async for i in client.get_dialogs(limit=50):
+                        if left >= 20:
+                            break
                         if i.chat.type in [
                             ChatType.SUPERGROUP,
                             ChatType.GROUP,
@@ -34,8 +36,6 @@ async def auto_leave():
                                 and i.chat.id != -1001626004802
                                 and i.chat.id != -1001876397776
                             ):
-                                if left == 20:
-                                    continue
                                 if not await is_active_chat(i.chat.id):
                                     try:
                                         await client.leave_chat(i.chat.id)

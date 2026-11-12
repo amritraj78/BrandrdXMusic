@@ -37,19 +37,36 @@ async def helper_private(
         _ = get_string(language)
         keyboard = help_pannel(_)
         
-        await update.reply_video(
-            video="https://graph.org/file/84d30d4fd04570c0e0256.mp4",
-            caption=_["help_1"].format(SUPPORT_CHAT), reply_markup=keyboard)
+        try:
+            await update.reply_video(
+                video="https://graph.org/file/84d30d4fd04570c0e0256.mp4",
+                caption=_["help_1"].format(SUPPORT_CHAT),
+                reply_markup=keyboard,
+            )
+        except Exception:
+            await update.reply_photo(
+                photo=START_IMG_URL,
+                caption=_["help_1"].format(SUPPORT_CHAT),
+                reply_markup=keyboard,
+            )
 
 
 @app.on_message(filters.command(["help"]) & filters.group & ~BANNED_USERS)
 @LanguageStart
 async def help_com_group(client, message: Message, _):
     keyboard = private_help_panel(_)
-    await message.reply_video(
-        video="https://te.legra.ph/file/51293513e6af319726fe7.mp4",
-        caption=_["help_2"], reply_markup=InlineKeyboardMarkup(keyboard)
-    )
+    try:
+        await message.reply_video(
+            video="https://te.legra.ph/file/51293513e6af319726fe7.mp4",
+            caption=_["help_2"],
+            reply_markup=InlineKeyboardMarkup(keyboard),
+        )
+    except Exception:
+        await message.reply_photo(
+            photo=START_IMG_URL,
+            caption=_["help_2"],
+            reply_markup=InlineKeyboardMarkup(keyboard),
+        )
 
 @app.on_callback_query(filters.regex("help_callback") & ~BANNED_USERS)
 @languageCB
