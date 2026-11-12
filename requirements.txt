@@ -21,7 +21,7 @@ unidecode
 yt-dlp
 py-yt-search
 ntgcalls==3.0.3
-lyricsgenius==3.0.0
+lyricsgenius==3.7.3
 requests
 pyDes==2.0.1
 six
