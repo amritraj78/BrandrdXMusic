@@ -263,8 +263,8 @@ class TestAllFeatures(unittest.TestCase):
 
         # Verify Mini App button URL
         mini_app_btn = smt[3][0]
-        self.assertIn("webapp?chat_id=", mini_app_btn.web_app.url)
-        self.assertIn(str(chat_id), mini_app_btn.web_app.url)
+        self.assertIn("webapp?chat_id=", mini_app_btn.url)
+        self.assertIn(str(chat_id), mini_app_btn.url)
         print("\n[PASS] Test 9: All 5-row inline markups, timers, and Mini App URL verified.")
 
 

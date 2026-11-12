@@ -50,6 +50,9 @@ VIDEO_QUALITY = VideoQuality.SD_360p
 
 
 def _audio_stream(path, ffmpeg_parameters=None):
+    if str(path).startswith("http"):
+        reconnect_params = "-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5"
+        ffmpeg_parameters = f"{reconnect_params} {ffmpeg_parameters}" if ffmpeg_parameters else reconnect_params
     return MediaStream(
         path,
         audio_parameters=AUDIO_QUALITY,
@@ -59,6 +62,9 @@ def _audio_stream(path, ffmpeg_parameters=None):
 
 
 def _video_stream(path, ffmpeg_parameters=None):
+    if str(path).startswith("http"):
+        reconnect_params = "-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5"
+        ffmpeg_parameters = f"{reconnect_params} {ffmpeg_parameters}" if ffmpeg_parameters else reconnect_params
     return MediaStream(
         path,
         audio_parameters=AUDIO_QUALITY,

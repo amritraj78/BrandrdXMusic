@@ -24,7 +24,7 @@ async def miniapp_command(cli, message: Message):
             [
                 InlineKeyboardButton(
                     text="📱 ᴏᴘᴇɴ ᴍᴜsɪᴄ ᴍɪɴɪ ᴀᴘᴘ",
-                    web_app=WebAppInfo(url=f"{web_app_url}/webapp?chat_id={chat_id}"),
+                    url=f"{web_app_url}/webapp?chat_id={chat_id}",
                 )
             ],
             [

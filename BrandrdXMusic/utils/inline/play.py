@@ -142,9 +142,7 @@ def stream_markup_timer(_, vidid, chat_id, played, dur):
         [
             InlineKeyboardButton(
                 text="📱 ᴍɪɴɪ ᴀᴘᴘ (ǫᴜᴇᴜᴇ • sᴇᴀʀᴄʜ • ᴠᴏᴛᴇ)",
-                web_app=WebAppInfo(
-                    url=f"{web_app_url}/webapp?chat_id={chat_id}"
-                ),
+                url=f"{web_app_url}/webapp?chat_id={chat_id}",
             )
         ],
         [
@@ -225,9 +223,7 @@ def stream_markup(_, videoid, chat_id):
         [
             InlineKeyboardButton(
                 text="📱 ᴍɪɴɪ ᴀᴘᴘ (ǫᴜᴇᴜᴇ • sᴇᴀʀᴄʜ • ᴠᴏᴛᴇ)",
-                web_app=WebAppInfo(
-                    url=f"{getattr(config, 'WEB_APP_URL', 'https://brandrd-music-animeworlds-b77dd182.apps.mistral.run')}/webapp?chat_id={chat_id}"
-                ),
+                url=f"{getattr(config, 'WEB_APP_URL', 'https://brandrd-music-animeworlds-b77dd182.apps.mistral.run')}/webapp?chat_id={chat_id}",
             )
         ],
         [

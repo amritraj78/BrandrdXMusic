@@ -122,6 +122,18 @@ def download_from_saavn_sync(query: str, file_path: str) -> bool:
         return False
 
 
+def _clean_music_title(title: str) -> str:
+    if not title:
+        return ""
+    # Strip (Official Video), [Official Music Video], (Lyrics), (Remix), [4K], etc.
+    t = re.sub(r"[\(\[\{].*?[\)\]\}]", "", title)
+    # Strip pipe and extra suffixes like | T-Series, | Sony Music
+    parts = re.split(r"\|", t)
+    t = parts[0]
+    t = re.sub(r"\s+", " ", t).strip()
+    return t
+
+
 def get_saavn_direct_stream_url(query: str):
     """Extract direct 320kbps CDN stream URL from JioSaavn in ~300ms without downloading."""
     try:
@@ -131,40 +143,55 @@ def get_saavn_direct_stream_url(query: str):
             from BrandrdXMusic.utils.des import des, ECB, PAD_PKCS5
     except Exception:
         return None
-    try:
-        search_query = re.sub(r"[^\w\s]", " ", query).strip()
-        search_url = f"https://www.jiosaavn.com/api.php?__call=autocomplete.get&_format=json&_marker=0&cc=in&includeMetaTags=1&query={urllib.parse.quote(search_query)}"
-        req = urllib.request.Request(search_url, headers={"User-Agent": "Mozilla/5.0"})
-        with urllib.request.urlopen(req, timeout=5) as resp:
-            data = json.loads(resp.read().decode("utf-8"))
-            songs = data.get("songs", {}).get("data", [])
-            if not songs:
-                return None
-            song_id = songs[0].get("id")
 
-        detail_url = f"https://www.jiosaavn.com/api.php?__call=song.getDetails&cc=in&_marker=0&_format=json&pids={song_id}"
-        req = urllib.request.Request(detail_url, headers={"User-Agent": "Mozilla/5.0"})
-        with urllib.request.urlopen(req, timeout=5) as resp:
-            data = json.loads(resp.read().decode("utf-8"))
-            song_info = data.get(song_id, {})
-            enc_url = song_info.get("encrypted_media_url")
-            if not enc_url:
-                vlink = song_info.get("vlink")
-                return vlink if vlink else None
+    cleaned_q = _clean_music_title(query)
+    search_candidates = []
+    if cleaned_q:
+        search_candidates.append(cleaned_q)
+    if query and query != cleaned_q:
+        search_candidates.append(query)
 
-        des_key = b"38346591"
-        des_cipher = des(des_key, ECB, b"\0\0\0\0\0\0\0\0", pad=None, padmode=PAD_PKCS5)
-        enc_url_bytes = base64.b64decode(enc_url.strip())
-        dec_bytes = des_cipher.decrypt(enc_url_bytes, padmode=PAD_PKCS5)
-        media_url = dec_bytes.decode("utf-8").replace("_96.mp4", "_320.mp4")
-        return media_url
-    except Exception as e:
-        LOGGER(__name__).warning("JioSaavn direct stream URL error: %s", e)
-        return None
+    for cand in search_candidates:
+        try:
+            search_query = re.sub(r"[^\w\s]", " ", cand).strip()
+            if not search_query:
+                continue
+            search_url = f"https://www.jiosaavn.com/api.php?__call=autocomplete.get&_format=json&_marker=0&cc=in&includeMetaTags=1&query={urllib.parse.quote(search_query)}"
+            req = urllib.request.Request(search_url, headers={"User-Agent": "Mozilla/5.0"})
+            with urllib.request.urlopen(req, timeout=5) as resp:
+                data = json.loads(resp.read().decode("utf-8"))
+                songs = data.get("songs", {}).get("data", [])
+                if not songs:
+                    continue
+                song_id = songs[0].get("id")
+
+            detail_url = f"https://www.jiosaavn.com/api.php?__call=song.getDetails&cc=in&_marker=0&_format=json&pids={song_id}"
+            req = urllib.request.Request(detail_url, headers={"User-Agent": "Mozilla/5.0"})
+            with urllib.request.urlopen(req, timeout=5) as resp:
+                data = json.loads(resp.read().decode("utf-8"))
+                song_info = data.get(song_id, {})
+                enc_url = song_info.get("encrypted_media_url")
+                if not enc_url:
+                    vlink = song_info.get("vlink")
+                    if vlink:
+                        return vlink
+                    continue
+
+            des_key = b"38346591"
+            des_cipher = des(des_key, ECB, b"\0\0\0\0\0\0\0\0", pad=None, padmode=PAD_PKCS5)
+            enc_url_bytes = base64.b64decode(enc_url.strip())
+            dec_bytes = des_cipher.decrypt(enc_url_bytes, padmode=PAD_PKCS5)
+            media_url = dec_bytes.decode("utf-8").replace("_96.mp4", "_320.mp4")
+            return media_url
+        except Exception as e:
+            LOGGER(__name__).warning("JioSaavn direct stream candidate '%s' error: %s", cand, e)
+            continue
+    return None
 
 
 def get_sc_direct_stream_url(search_term: str):
     """Extract direct stream URL from SoundCloud via yt-dlp in ~700ms without downloading."""
+    term = _clean_music_title(search_term) or search_term
     sc_opts = {
         "format": "bestaudio/best",
         "geo_bypass": True,
@@ -174,7 +201,7 @@ def get_sc_direct_stream_url(search_term: str):
     }
     try:
         with yt_dlp.YoutubeDL(sc_opts) as ydl:
-            info = ydl.extract_info(f"scsearch1:{search_term}", download=False)
+            info = ydl.extract_info(f"scsearch1:{term}", download=False)
             if info and info.get("entries"):
                 return info["entries"][0].get("url")
     except Exception as e:
