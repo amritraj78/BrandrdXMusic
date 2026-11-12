@@ -1,6 +1,10 @@
 import asyncio
+import base64
+import json
 import os
 import re
+import urllib.parse
+import urllib.request
 from typing import Union
 import aiohttp
 import yt_dlp
@@ -25,6 +29,10 @@ COMMON_YTDL_OPTS = {
         }
     },
 }
+
+COOKIE_PATH = "cookies.txt"
+if os.path.exists(COOKIE_PATH):
+    COMMON_YTDL_OPTS["cookiefile"] = COOKIE_PATH
 
 
 def time_to_seconds(time):
@@ -53,7 +61,52 @@ def extract_video_id(link: str) -> str:
     return link
 
 
-async def download_song(link: str) -> str:
+def download_from_saavn_sync(query: str, file_path: str) -> bool:
+    try:
+        from pyDes import des, ECB, PAD_PKCS5
+    except ImportError:
+        return False
+    try:
+        search_query = re.sub(r"[^\w\s]", " ", query).strip()
+        search_url = f"https://www.jiosaavn.com/api.php?__call=autocomplete.get&_format=json&_marker=0&cc=in&includeMetaTags=1&query={urllib.parse.quote(search_query)}"
+        req = urllib.request.Request(search_url, headers={"User-Agent": "Mozilla/5.0"})
+        with urllib.request.urlopen(req, timeout=5) as resp:
+            data = json.loads(resp.read().decode("utf-8"))
+            songs = data.get("songs", {}).get("data", [])
+            if not songs:
+                return False
+            song_id = songs[0].get("id")
+
+        detail_url = f"https://www.jiosaavn.com/api.php?__call=song.getDetails&cc=in&_marker=0&_format=json&pids={song_id}"
+        req = urllib.request.Request(detail_url, headers={"User-Agent": "Mozilla/5.0"})
+        with urllib.request.urlopen(req, timeout=5) as resp:
+            data = json.loads(resp.read().decode("utf-8"))
+            song_info = data.get(song_id, {})
+            enc_url = song_info.get("encrypted_media_url")
+            if not enc_url:
+                vlink = song_info.get("vlink")
+                if vlink:
+                    urllib.request.urlretrieve(vlink, file_path)
+                    return os.path.exists(file_path) and os.path.getsize(file_path) > 0
+                return False
+
+        des_key = b"38346591"
+        des_cipher = des(des_key, ECB, b"\0\0\0\0\0\0\0\0", pad=None, padmode=PAD_PKCS5)
+        enc_url_bytes = base64.b64decode(enc_url.strip())
+        dec_bytes = des_cipher.decrypt(enc_url_bytes, padmode=PAD_PKCS5)
+        media_url = dec_bytes.decode("utf-8").replace("_96.mp4", "_320.mp4")
+
+        req = urllib.request.Request(media_url, headers={"User-Agent": "Mozilla/5.0"})
+        with urllib.request.urlopen(req, timeout=30) as stream_resp:
+            with open(file_path, "wb") as f:
+                f.write(stream_resp.read())
+        return os.path.exists(file_path) and os.path.getsize(file_path) > 0
+    except Exception as e:
+        LOGGER(__name__).warning("JioSaavn fallback failed: %s", e)
+        return False
+
+
+async def download_song(link: str, title: str = None) -> str:
     raw_id = extract_video_id(link)
     video_id = re.sub(r"[^a-zA-Z0-9_-]", "", raw_id) if raw_id else ""
     if not video_id or len(video_id) < 3:
@@ -89,7 +142,7 @@ async def download_song(link: str) -> str:
 
     yt_target = f"https://www.youtube.com/watch?v={video_id}" if len(video_id) == 11 else link
 
-    # 2. Try yt-dlp file download
+    # 2. Try yt-dlp YouTube download
     try:
         loop = asyncio.get_event_loop()
         def _ytdl_audio():
@@ -121,9 +174,85 @@ async def download_song(link: str) -> str:
         if res and os.path.exists(res) and os.path.getsize(res) > 0:
             return res
     except Exception as e:
-        LOGGER(__name__).warning("yt-dlp file download failed: %s", e)
+        LOGGER(__name__).warning("yt-dlp YouTube download failed: %s", e)
 
-    # 3. Fallback to direct stream URL
+    # 3. Fallback: SoundCloud Search & Download
+    search_term = title or video_id
+    if search_term and search_term != "Unknown Track":
+        try:
+            loop = asyncio.get_event_loop()
+            def _sc_audio():
+                sc_opts = {
+                    "format": "bestaudio/best",
+                    "outtmpl": os.path.join(DOWNLOAD_DIR, f"{video_id}.%(ext)s"),
+                    "geo_bypass": True,
+                    "nocheckcertificate": True,
+                    "quiet": True,
+                    "no_warnings": True,
+                    "prefer_ffmpeg": True,
+                    "postprocessors": [
+                        {
+                            "key": "FFmpegExtractAudio",
+                            "preferredcodec": "mp3",
+                            "preferredquality": "192",
+                        }
+                    ],
+                }
+                with yt_dlp.YoutubeDL(sc_opts) as ydl:
+                    ydl.download([f"scsearch1:{search_term}"])
+                if os.path.exists(file_path) and os.path.getsize(file_path) > 0:
+                    return file_path
+                for fname in os.listdir(DOWNLOAD_DIR):
+                    if fname.startswith(video_id):
+                        p = os.path.join(DOWNLOAD_DIR, fname)
+                        if os.path.getsize(p) > 0:
+                            return p
+                return None
+
+            sc_res = await loop.run_in_executor(None, _sc_audio)
+            if sc_res and os.path.exists(sc_res) and os.path.getsize(sc_res) > 0:
+                LOGGER(__name__).info("SoundCloud download succeeded for: %s", search_term)
+                return sc_res
+        except Exception as e:
+            LOGGER(__name__).warning("SoundCloud fallback download failed: %s", e)
+
+    # 4. Fallback: JioSaavn Direct Download
+    if search_term and search_term != "Unknown Track":
+        try:
+            loop = asyncio.get_event_loop()
+            saavn_ok = await loop.run_in_executor(None, download_from_saavn_sync, search_term, file_path)
+            if saavn_ok and os.path.exists(file_path) and os.path.getsize(file_path) > 0:
+                LOGGER(__name__).info("JioSaavn download succeeded for: %s", search_term)
+                return file_path
+        except Exception as e:
+            LOGGER(__name__).warning("JioSaavn fallback failed: %s", e)
+
+    # 5. Fallback: Direct SoundCloud stream URL
+    if search_term and search_term != "Unknown Track":
+        try:
+            loop = asyncio.get_event_loop()
+            def _sc_url():
+                sc_opts = {
+                    "format": "bestaudio/best",
+                    "geo_bypass": True,
+                    "nocheckcertificate": True,
+                    "quiet": True,
+                    "no_warnings": True,
+                }
+                with yt_dlp.YoutubeDL(sc_opts) as ydl:
+                    info = ydl.extract_info(f"scsearch1:{search_term}", download=False)
+                    if info and info.get("entries"):
+                        return info["entries"][0].get("url")
+                return None
+
+            direct_sc_url = await loop.run_in_executor(None, _sc_url)
+            if direct_sc_url:
+                LOGGER(__name__).info("SoundCloud stream URL extracted for: %s", search_term)
+                return direct_sc_url
+        except Exception as e:
+            LOGGER(__name__).warning("SoundCloud stream URL extraction failed: %s", e)
+
+    # 6. Fallback: Direct YouTube stream URL
     try:
         loop = asyncio.get_event_loop()
         def _extract_url():
@@ -142,7 +271,7 @@ async def download_song(link: str) -> str:
     return None
 
 
-async def download_video(link: str) -> str:
+async def download_video(link: str, title: str = None) -> str:
     raw_id = extract_video_id(link)
     video_id = re.sub(r"[^a-zA-Z0-9_-]", "", raw_id) if raw_id else ""
     if not video_id or len(video_id) < 3:
@@ -477,7 +606,7 @@ class YouTubeAPI:
         except Exception as e:
             LOGGER(__name__).error("formats extraction failed: %s", e)
 
-        # Robust fallback formats so /song format buttons never fail
+        # Fallback formats for format selector
         vid = extract_video_id(link)
         yt_url = f"https://www.youtube.com/watch?v={vid}" if vid else link
         fallback_formats = [
@@ -533,7 +662,7 @@ class YouTubeAPI:
     async def download(
         self,
         link: str,
-        mystic,
+        mystic=None,
         video: Union[bool, str] = None,
         videoid: Union[bool, str] = None,
         songaudio: Union[bool, str] = None,
@@ -542,12 +671,22 @@ class YouTubeAPI:
         title: Union[bool, str] = None,
     ) -> str:
         if videoid:
+            vid = link
             link = self.base + link
+        else:
+            vid = extract_video_id(link)
+
+        if not title:
+            try:
+                title, _, _, _, _ = await self.details(link)
+            except Exception:
+                title = vid
+
         try:
             if video:
-                downloaded_file = await download_video(link)
+                downloaded_file = await download_video(link, title=title)
             else:
-                downloaded_file = await download_song(link)
+                downloaded_file = await download_song(link, title=title)
             if downloaded_file:
                 return downloaded_file, True
             return None, False

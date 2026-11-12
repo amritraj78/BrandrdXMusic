@@ -117,7 +117,7 @@ async def stream(
                     db[chat_id] = []
                 try:
                     file_path, direct = await YouTube.download(
-                        vidid, mystic, video=status, videoid=True
+                        vidid, mystic, video=status, videoid=True, title=title
                     )
                 except Exception as e:
                     LOGGER(__name__).error("stream: unhandled exception %s", e, exc_info=True)
@@ -185,7 +185,7 @@ async def stream(
         status = True if video else None
         try:
             file_path, direct = await YouTube.download(
-                vidid, mystic, videoid=True, video=status
+                vidid, mystic, videoid=True, video=status, title=title
             )
         except Exception as e:
             LOGGER(__name__).error("stream: YouTube.download error: %s", e, exc_info=True)

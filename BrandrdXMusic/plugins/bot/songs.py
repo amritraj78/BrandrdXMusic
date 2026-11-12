@@ -227,7 +227,7 @@ async def song_download_cb(client, callback_query: CallbackQuery, _) :
     mystic = await callback_query.edit_message_text(_["song_8"])
     yturl = f"https://www.youtube.com/watch?v={vidid}"
     try:
-        title, duration_min, duration_sec, thumbnail, _ = await YouTube.details(vidid, True)
+        title, duration_min, duration_sec, thumbnail, vid_res = await YouTube.details(vidid, True)
     except Exception:
         title = "Track"
         duration_sec = 0
