@@ -1,5 +1,6 @@
 import os
 import gc
+import time
 import shutil
 import asyncio
 import psutil
@@ -39,15 +40,37 @@ def get_dir_size(path: str) -> int:
 def clean_storage_and_memory(deep: bool = True) -> dict:
     """
     Cleans temporary audio/video downloads, cache, and frees system RAM.
+    Safely preserves active stream files and newly cached tracks.
     """
     bytes_freed = 0
     mem_before = psutil.virtual_memory().used
+    now = time.time()
 
-    # 1. Clean downloads directory
+    # Track active streaming and queued files so we NEVER delete them
+    active_files = set()
+    try:
+        from BrandrdXMusic.misc import db
+        for cid, track_list in db.items():
+            if isinstance(track_list, list):
+                for trk in track_list:
+                    if isinstance(trk, dict):
+                        f = trk.get("file")
+                        if f and isinstance(f, str) and not f.startswith("http"):
+                            active_files.add(os.path.abspath(f))
+    except Exception:
+        pass
+
+    # 1. Clean downloads directory (skip active and recent files < 15 mins)
     if os.path.exists("downloads"):
         for filename in os.listdir("downloads"):
             filepath = os.path.join("downloads", filename)
+            abs_p = os.path.abspath(filepath)
+            if abs_p in active_files:
+                continue
             try:
+                # Do not delete files created within the last 15 minutes unless deep clean
+                if not deep and (now - os.path.getmtime(filepath) < 900):
+                    continue
                 if os.path.isfile(filepath) or os.path.islink(filepath):
                     bytes_freed += os.path.getsize(filepath)
                     os.unlink(filepath)
@@ -57,13 +80,19 @@ def clean_storage_and_memory(deep: bool = True) -> dict:
             except Exception:
                 pass
 
-    # 2. Clean cache directory (preserve silence audio if needed)
+    # 2. Clean cache directory (preserve silence audio and active files)
     if os.path.exists("cache"):
         for filename in os.listdir("cache"):
             if filename in ("silence.wav", "silence.mp4"):
                 continue
             filepath = os.path.join("cache", filename)
+            abs_p = os.path.abspath(filepath)
+            if abs_p in active_files:
+                continue
             try:
+                # Keep cached thumbnails for at least 1 hour unless deep clean
+                if not deep and (now - os.path.getmtime(filepath) < 3600):
+                    continue
                 if os.path.isfile(filepath) or os.path.islink(filepath):
                     bytes_freed += os.path.getsize(filepath)
                     os.unlink(filepath)
@@ -77,6 +106,9 @@ def clean_storage_and_memory(deep: bool = True) -> dict:
     if os.path.exists("raw_files"):
         for filename in os.listdir("raw_files"):
             filepath = os.path.join("raw_files", filename)
+            abs_p = os.path.abspath(filepath)
+            if abs_p in active_files:
+                continue
             try:
                 bytes_freed += os.path.getsize(filepath)
                 os.unlink(filepath)

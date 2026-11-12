@@ -163,8 +163,10 @@ async def skip(cli, message: Message, _, chat_id):
             reply_markup=InlineKeyboardMarkup(button),
         )
         db[chat_id][0]["mystic"] = run
-        db[chat_id][0]["markup"] = "stream"
-        await mystic.delete()
+        try:
+            await mystic.delete()
+        except Exception:
+            pass
         await Hotty.precache_next_track(chat_id)
     elif "index_" in queued:
         try:

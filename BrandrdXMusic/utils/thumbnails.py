@@ -1,5 +1,6 @@
 
 import os
+import re
 from io import BytesIO
 import aiohttp
 from PIL import Image
@@ -42,6 +43,8 @@ async def _fetch(session, videoid, name):
 
 
 async def get_thumb(videoid):
+    if not videoid or not re.match(r"^[a-zA-Z0-9_-]{11}$", str(videoid)):
+        return YOUTUBE_IMG_URL
     path = f"cache/{videoid}.jpg"
     if os.path.isfile(path) and os.path.getsize(path) > 0:
         return path

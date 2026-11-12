@@ -3,6 +3,7 @@ import base64
 import json
 import os
 import re
+import shutil
 import urllib.parse
 import urllib.request
 from typing import Union
@@ -12,6 +13,7 @@ from pyrogram.enums import MessageEntityType
 from pyrogram.types import Message
 from py_yt import VideosSearch
 from BrandrdXMusic.logging import LOGGER
+import config
 
 API_URL = os.environ.get("API_URL", "")
 API_KEY = os.environ.get("API_KEY", os.environ.get("SAPI_KEY", ""))
@@ -117,7 +119,7 @@ def download_from_saavn_sync(query: str, file_path: str) -> bool:
         req = urllib.request.Request(media_url, headers={"User-Agent": "Mozilla/5.0"})
         with urllib.request.urlopen(req, timeout=30) as stream_resp:
             with open(file_path, "wb") as f:
-                f.write(stream_resp.read())
+                shutil.copyfileobj(stream_resp, f)
         return os.path.exists(file_path) and os.path.getsize(file_path) > 0
     except Exception as e:
         LOGGER(__name__).warning("JioSaavn fallback failed: %s", e)
@@ -250,6 +252,9 @@ async def get_direct_stream_url(link: str, title: str = None) -> Union[str, None
 
 
 async def download_song(link: str, title: str = None, direct_stream: bool = False) -> str:
+    if str(link).startswith("http") and any(link.split("?")[0].lower().endswith(ext) for ext in (".mp3", ".m4a", ".aac", ".wav", ".opus", ".ogg")):
+        return link
+
     raw_id = extract_video_id(link)
     video_id = re.sub(r"[^a-zA-Z0-9_-]", "", raw_id) if raw_id else ""
     if not video_id or len(video_id) < 3:
@@ -603,11 +608,17 @@ class YouTubeAPI:
         except Exception as e:
             LOGGER(__name__).warning("yt-dlp fallback failed in details: %s", e)
 
-        # 3. Final default fallback with oembed
-        vid = extract_video_id(link) or "unknown"
-        oembed_ttl = get_yt_title_oembed(vid)
-        ttl = oembed_ttl if oembed_ttl else "Unknown Track"
-        return ttl, "0:00", 0, f"https://img.youtube.com/vi/{vid}/hqdefault.jpg", vid
+        # 3. Final default fallback with oembed / query preservation
+        vid = extract_video_id(link)
+        if vid:
+            oembed_ttl = get_yt_title_oembed(vid)
+            ttl = oembed_ttl if oembed_ttl else "Unknown Track"
+            thumb = f"https://img.youtube.com/vi/{vid}/hqdefault.jpg"
+        else:
+            vid = f"song_{abs(hash(link)) % 10000000}"
+            ttl = str(link).strip()
+            thumb = config.YOUTUBE_IMG_URL
+        return ttl, "0:00", 0, thumb, vid
 
     async def title(self, link: str, videoid: Union[bool, str] = None):
         t, _, _, _, _ = await self.details(link, videoid)
@@ -728,16 +739,24 @@ class YouTubeAPI:
         except Exception as e:
             LOGGER(__name__).warning("yt-dlp fallback failed in track: %s", e)
 
-        # 3. Final fallback with oembed
-        vid = extract_video_id(link) or "unknown"
-        oembed_ttl = get_yt_title_oembed(vid)
-        ttl = oembed_ttl if oembed_ttl else "Unknown Track"
+        # 3. Final fallback with oembed / query preservation
+        vid = extract_video_id(link)
+        if vid:
+            oembed_ttl = get_yt_title_oembed(vid)
+            ttl = oembed_ttl if oembed_ttl else "Unknown Track"
+            thumb = f"https://img.youtube.com/vi/{vid}/hqdefault.jpg"
+            yturl = f"https://www.youtube.com/watch?v={vid}"
+        else:
+            vid = f"song_{abs(hash(link)) % 10000000}"
+            ttl = str(link).strip()
+            thumb = config.YOUTUBE_IMG_URL
+            yturl = link
         return {
             "title": ttl,
-            "link": f"https://www.youtube.com/watch?v={vid}",
+            "link": yturl,
             "vidid": vid,
             "duration_min": "0:00",
-            "thumb": f"https://img.youtube.com/vi/{vid}/hqdefault.jpg",
+            "thumb": thumb,
         }, vid
 
     async def formats(self, link: str, videoid: Union[bool, str] = None):

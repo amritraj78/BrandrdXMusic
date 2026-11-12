@@ -99,9 +99,9 @@ async def del_back_playlist(client, CallbackQuery, _):
                 return await CallbackQuery.edit_message_text(f"ғᴀɪʟᴇᴅ.")
             try:
                 if current["vidid"] != exists["vidid"]:
-                    return await CallbackQuery.edit_message.text(_["admin_35"])
+                    return await CallbackQuery.edit_message_text(_["admin_35"])
                 if current["file"] != exists["file"]:
-                    return await CallbackQuery.edit_message.text(_["admin_35"])
+                    return await CallbackQuery.edit_message_text(_["admin_35"])
             except:
                 return await CallbackQuery.edit_message_text(_["admin_36"])
             try:
@@ -135,6 +135,15 @@ async def del_back_playlist(client, CallbackQuery, _):
         if not is_non_admin:
             if CallbackQuery.from_user.id not in SUDOERS:
                 admins = adminlist.get(CallbackQuery.message.chat.id)
+                if not admins:
+                    try:
+                        admins = []
+                        async for m in app.get_chat_administrators(CallbackQuery.message.chat.id):
+                            if m.user:
+                                admins.append(m.user.id)
+                        adminlist[CallbackQuery.message.chat.id] = admins
+                    except Exception:
+                        pass
                 if not admins:
                     return await CallbackQuery.answer(_["admin_13"], show_alert=True)
                 else:
@@ -352,7 +361,10 @@ async def del_back_playlist(client, CallbackQuery, _):
             db[chat_id][0]["mystic"] = run
             db[chat_id][0]["markup"] = "stream"
             await CallbackQuery.edit_message_text(txt, reply_markup=close_markup(_))
-            await mystic.delete()
+            try:
+                await mystic.delete()
+            except Exception:
+                pass
             await Hotty.precache_next_track(chat_id)
         elif "index_" in queued:
             try:

@@ -75,6 +75,8 @@ def _video_stream(path, ffmpeg_parameters=None):
 
 async def _clear_(chat_id):
     db[chat_id] = []
+    autoend.pop(chat_id, None)
+    counter.pop(chat_id, None)
     await remove_active_video_chat(chat_id)
     await remove_active_chat(chat_id)
 
@@ -900,7 +902,13 @@ class Call(PyTgCalls):
         clients = [self.one, self.two, self.three, self.four, self.five]
 
         async def stream_services_handler(_, update: Update):
-            await self.stop_stream(update.chat_id)
+            status = getattr(update, "status", None)
+            if status is not None:
+                status_str = str(status).upper()
+                if any(x in status_str for x in ("LEFT", "KICK", "CLOSED", "DISCONNECTED")):
+                    await self.stop_stream(update.chat_id)
+            else:
+                await self.stop_stream(update.chat_id)
 
         async def stream_end_handler(client, update: StreamEnded):
             if update.chat_id in self._prejoin_tasks:

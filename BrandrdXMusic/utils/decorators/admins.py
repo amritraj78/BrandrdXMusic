@@ -68,6 +68,15 @@ def AdminRightsCheck(mystic):
             if message.from_user.id not in SUDOERS:
                 admins = adminlist.get(message.chat.id)
                 if not admins:
+                    try:
+                        admins = []
+                        async for m in app.get_chat_administrators(message.chat.id):
+                            if m.user:
+                                admins.append(m.user.id)
+                        adminlist[message.chat.id] = admins
+                    except Exception:
+                        pass
+                if not admins:
                     return await message.reply_text(_["admin_13"])
                 else:
                     if message.from_user.id not in admins:
