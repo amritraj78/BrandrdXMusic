@@ -152,17 +152,63 @@ def stream_markup(_, videoid, chat_id):
         ],
         [
             InlineKeyboardButton(
-                text="ᴏᴡɴᴇʀ",
-                url=f"https://t.me/{config.OWNER_USERNAME}",
+                text="🔉 -15%",
+                callback_data=f"ADMIN VolDown|{chat_id}",
                 style=COLORS[0],
-            )
+            ),
+            InlineKeyboardButton(
+                text="🔊 +15%",
+                callback_data=f"ADMIN VolUp|{chat_id}",
+                style=COLORS[0],
+            ),
+            InlineKeyboardButton(
+                text="🔀 ꜱʜᴜғғʟᴇ",
+                callback_data=f"ADMIN Shuffle|{chat_id}",
+                style=COLORS[1],
+            ),
+            InlineKeyboardButton(
+                text="🔁 ʟᴏᴏᴘ",
+                callback_data=f"ADMIN Loop|{chat_id}",
+                style=COLORS[1],
+            ),
         ],
         [
+            InlineKeyboardButton(
+                text="🎛️ ғɪʟᴛᴇʀs",
+                callback_data=f"ADMIN FilterMenu|{chat_id}",
+                style=COLORS[0],
+            ),
+            InlineKeyboardButton(
+                text="👑 ᴏᴡɴᴇʀ",
+                url=f"https://t.me/{config.OWNER_USERNAME}",
+                style=COLORS[1],
+            ),
             InlineKeyboardButton(
                 text=_["CLOSE_BUTTON"],
                 callback_data="close",
                 style=COLORS[2],
-            )
+            ),
+        ],
+    ]
+
+
+def filter_markup(chat_id):
+    return [
+        [
+            InlineKeyboardButton(text="🔊 Bass Boost", callback_data=f"ADMIN Filter_bass|{chat_id}", style=COLORS[0]),
+            InlineKeyboardButton(text="🌙 Slowed+Reverb", callback_data=f"ADMIN Filter_slowed|{chat_id}", style=COLORS[1]),
+        ],
+        [
+            InlineKeyboardButton(text="⚡ Nightcore", callback_data=f"ADMIN Filter_nightcore|{chat_id}", style=COLORS[1]),
+            InlineKeyboardButton(text="🎧 8D Audio", callback_data=f"ADMIN Filter_8d|{chat_id}", style=COLORS[0]),
+        ],
+        [
+            InlineKeyboardButton(text="🌊 Vaporwave", callback_data=f"ADMIN Filter_vaporwave|{chat_id}", style=COLORS[0]),
+            InlineKeyboardButton(text="🔄 Reset Filter", callback_data=f"ADMIN Filter_reset|{chat_id}", style=COLORS[2]),
+        ],
+        [
+            InlineKeyboardButton(text="🔙 Back to Player", callback_data=f"ADMIN BackToPlayer|{chat_id}", style=COLORS[0]),
+            InlineKeyboardButton(text="❌ Close", callback_data="close", style=COLORS[2]),
         ],
     ]
 

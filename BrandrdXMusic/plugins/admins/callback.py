@@ -9,6 +9,7 @@ from BrandrdXMusic.misc import SUDOERS, db
 from BrandrdXMusic.utils.database import (
     get_active_chats,
     get_lang,
+    get_loop,
     get_upvote_count,
     is_active_chat,
     is_music_playing,
@@ -21,6 +22,7 @@ from BrandrdXMusic.utils.decorators.language import languageCB
 from BrandrdXMusic.utils.formatters import seconds_to_min
 from BrandrdXMusic.utils.inline import (
     close_markup,
+    filter_markup,
     stream_markup,
     stream_markup_timer,
 )
@@ -40,6 +42,7 @@ from strings import get_string
 
 checker = {}
 upvoters = {}
+current_volume = {}
 
 
 @app.on_callback_query(filters.regex("ADMIN") & ~BANNED_USERS)
@@ -160,6 +163,64 @@ async def del_back_playlist(client, CallbackQuery, _):
             _["admin_5"].format(mention), reply_markup=close_markup(_)
         )
         await CallbackQuery.message.delete()
+    elif command == "VolUp" or command == "VolDown":
+        vol = current_volume.get(chat_id, 100)
+        vol = min(200, vol + 15) if command == "VolUp" else max(10, vol - 15)
+        current_volume[chat_id] = vol
+        await Hotty.set_volume(chat_id, vol)
+        return await CallbackQuery.answer(f"🔊 Volume set to: {vol}%", show_alert=False)
+    elif command == "Vol100":
+        current_volume[chat_id] = 100
+        await Hotty.set_volume(chat_id, 100)
+        return await CallbackQuery.answer("🔊 Volume reset to 100%", show_alert=False)
+    elif command == "ToggleDJ":
+        from BrandrdXMusic.utils.database import get_playtype, set_playtype
+        cur = await get_playtype(chat_id)
+        new_mode = "Everyone" if cur == "Admin" else "Admin"
+        await set_playtype(chat_id, new_mode)
+        status_str = "Enabled (Admins/Auth Only)" if new_mode == "Admin" else "Disabled (Everyone)"
+        return await CallbackQuery.answer(f"🎧 DJ Mode: {status_str}", show_alert=True)
+    elif command == "Shuffle":
+        check = db.get(chat_id)
+        if not check or len(check) <= 1:
+            return await CallbackQuery.answer("Queue has too few tracks to shuffle.", show_alert=True)
+        first = check.pop(0)
+        import random
+        random.shuffle(check)
+        check.insert(0, first)
+        return await CallbackQuery.answer("🔀 Queue shuffled successfully!", show_alert=False)
+    elif command == "Loop":
+        loop = await get_loop(chat_id)
+        new_loop = 3 if loop == 0 else 0
+        await set_loop(chat_id, new_loop)
+        txt = "🔁 Loop enabled (3x)" if new_loop > 0 else "🔁 Loop disabled"
+        return await CallbackQuery.answer(txt, show_alert=False)
+    elif command == "FilterMenu":
+        return await CallbackQuery.edit_message_reply_markup(
+            reply_markup=InlineKeyboardMarkup(filter_markup(chat_id))
+        )
+    elif command == "BackToPlayer":
+        check = db.get(chat_id)
+        vidid = check[0]["vidid"] if check else ""
+        return await CallbackQuery.edit_message_reply_markup(
+            reply_markup=InlineKeyboardMarkup(stream_markup(_, vidid, chat_id))
+        )
+    elif command.startswith("Filter_"):
+        ftype = command.split("_", 1)[1]
+        check = db.get(chat_id)
+        if not check:
+            return await CallbackQuery.answer("Nothing is currently playing.", show_alert=True)
+        file_path = check[0]["file"]
+        await CallbackQuery.answer(f"Applying filter: {ftype.title()}...", show_alert=False)
+        try:
+            await Hotty.apply_audio_filter(chat_id, file_path, ftype, check)
+            await CallbackQuery.message.reply_text(
+                f"🎛️ **Audio Filter Applied**: `{ftype.title()}`\n└ ʙʏ : {mention}",
+                reply_markup=close_markup(_),
+            )
+        except Exception as e:
+            return await CallbackQuery.answer(f"Failed to apply filter: {e}", show_alert=True)
+        return
     elif command == "Skip" or command == "Replay":
         check = db.get(chat_id)
         if command == "Skip":

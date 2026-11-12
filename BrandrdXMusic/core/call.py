@@ -359,6 +359,67 @@ class Call(PyTgCalls):
             db[chat_id][0]["speed_path"] = out
             db[chat_id][0]["speed"] = speed
 
+    async def set_volume(self, chat_id: int, volume: int):
+        assistant = await group_assistant(self, chat_id)
+        for method in ("change_volume_call", "set_volume", "change_volume"):
+            if hasattr(assistant, method):
+                func = getattr(assistant, method)
+                try:
+                    await func(chat_id, volume)
+                    return True
+                except Exception:
+                    pass
+        return False
+
+    async def apply_audio_filter(self, chat_id: int, file_path: str, filter_type: str, playing: list):
+        assistant = await group_assistant(self, chat_id)
+        AUDIO_FILTERS = {
+            "bass": "equalizer=f=60:width_type=h:width=50:g=12",
+            "bassboost": "equalizer=f=60:width_type=h:width=50:g=16",
+            "slowed": "atempo=0.86,asetrate=44100*0.92,aecho=0.8:0.88:60:0.4",
+            "nightcore": "atempo=1.06,asetrate=44100*1.22",
+            "8d": "apulsator=hz=0.125",
+            "vaporwave": "atempo=0.8,asetrate=44100*0.85",
+            "echo": "aecho=0.8:0.9:1000:0.3",
+        }
+        if filter_type in AUDIO_FILTERS:
+            base = os.path.basename(file_path)
+            chatdir = os.path.join(os.getcwd(), "playback", str(filter_type))
+            os.makedirs(chatdir, exist_ok=True)
+            out = os.path.join(chatdir, base)
+
+            if not os.path.isfile(out):
+                af_val = AUDIO_FILTERS[filter_type]
+                proc = await asyncio.create_subprocess_shell(
+                    cmd=f'ffmpeg -y -i "{file_path}" -filter:a "{af_val}" "{out}"',
+                    stdin=asyncio.subprocess.PIPE,
+                    stderr=asyncio.subprocess.PIPE,
+                )
+                await proc.communicate()
+                if proc.returncode != 0 or not os.path.isfile(out):
+                    raise AssistantErr("Could not apply audio filter.")
+        else:
+            out = file_path
+
+        dur = await asyncio.get_event_loop().run_in_executor(None, check_duration, out)
+        dur = int(dur)
+        duration = seconds_to_min(dur)
+        played = playing[0].get("played", 0)
+
+        ffmpeg_parameters = f"-ss {played} -to {duration}"
+        stream = (
+            _video_stream(out, ffmpeg_parameters=ffmpeg_parameters)
+            if playing[0]["streamtype"] == "video"
+            else _audio_stream(out, ffmpeg_parameters=ffmpeg_parameters)
+        )
+
+        if str(db[chat_id][0]["file"]) == str(file_path):
+            await assistant.play(chat_id, stream)
+            db[chat_id][0]["filter"] = filter_type
+            db[chat_id][0]["speed_path"] = out
+        else:
+            raise AssistantErr("Track is no longer playing.")
+
     async def force_stop_stream(self, chat_id: int):
         assistant = await group_assistant(self, chat_id)
 

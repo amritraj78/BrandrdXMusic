@@ -28,10 +28,24 @@ links = {}
 clinks = {}
 
 
+_user_cooldown = {}
+COOLDOWN_SECONDS = 3
+
+
 def PlayWrapper(command):
     async def wrapper(client, message):
         language = await get_lang(message.chat.id)
         _ = get_string(language)
+        user_id = message.from_user.id if message.from_user else None
+        if user_id and user_id not in SUDOERS:
+            now = asyncio.get_event_loop().time()
+            last_time = _user_cooldown.get(user_id, 0)
+            if now - last_time < COOLDOWN_SECONDS:
+                return await message.reply_text(
+                    "⏳ **Cooldown Active:** Please wait a moment between commands to avoid rate limits."
+                )
+            _user_cooldown[user_id] = now
+
         if message.sender_chat:
             upl = InlineKeyboardMarkup(
                 [
