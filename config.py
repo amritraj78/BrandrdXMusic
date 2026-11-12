@@ -37,6 +37,7 @@ OWNER_SNAPCHAT = getenv("OWNER_SNAPCHAT", "https://snapchat.com/add/ex_amrit")
 
 # Koyeb Web Server Port (Free tier web service listening port)
 PORT = int(getenv("PORT", 8000))
+WEB_APP_URL = getenv("WEB_APP_URL", "https://brandrd-music-animeworlds-b77dd182.apps.mistral.run")
 
 # Heroku deployment variables (optional)
 HEROKU_APP_NAME = getenv("HEROKU_APP_NAME")

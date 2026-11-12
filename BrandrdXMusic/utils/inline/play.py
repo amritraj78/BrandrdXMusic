@@ -4,7 +4,7 @@ import config
 from BrandrdXMusic import app
 
 from pyrogram.enums import ButtonStyle
-from pyrogram.types import InlineKeyboardButton
+from pyrogram.types import InlineKeyboardButton, WebAppInfo
 from BrandrdXMusic.utils.formatters import time_to_seconds
 
 
@@ -171,6 +171,14 @@ def stream_markup(_, videoid, chat_id):
                 callback_data=f"ADMIN Loop|{chat_id}",
                 style=COLORS[1],
             ),
+        ],
+        [
+            InlineKeyboardButton(
+                text="📱 ᴍɪɴɪ ᴀᴘᴘ (ǫᴜᴇᴜᴇ • sᴇᴀʀᴄʜ • ᴠᴏᴛᴇ)",
+                web_app=WebAppInfo(
+                    url=f"{getattr(config, 'WEB_APP_URL', 'https://brandrd-music-animeworlds-b77dd182.apps.mistral.run')}/webapp?chat_id={chat_id}"
+                ),
+            )
         ],
         [
             InlineKeyboardButton(
