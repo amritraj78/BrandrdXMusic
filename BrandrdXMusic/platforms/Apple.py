@@ -33,12 +33,16 @@ class AppleAPI:
         if search is None:
             return False
         results = VideosSearch(search, limit=1)
-        for result in (await results.next())["result"]:
-            title = result["title"]
-            ytlink = result["link"]
-            vidid = result["id"]
-            duration_min = result["duration"]
-            thumbnail = result["thumbnails"][0]["url"].split("?")[0]
+        res_data = (await results.next()).get("result") or []
+        if not res_data:
+            return False
+        result = res_data[0]
+        title = result.get("title", "Track")
+        ytlink = result.get("link", "")
+        vidid = result.get("id", "")
+        duration_min = result.get("duration", "0:00")
+        thumbs = result.get("thumbnails", [{}])
+        thumbnail = thumbs[0].get("url", "").split("?")[0] if thumbs else ""
         track_details = {
             "title": title,
             "link": ytlink,

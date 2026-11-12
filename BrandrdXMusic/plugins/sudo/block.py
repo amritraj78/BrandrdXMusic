@@ -16,6 +16,8 @@ async def useradd(client, message: Message, _):
         if len(message.command) != 2:
             return await message.reply_text(_["general_1"])
     user = await extract_user(message)
+    if not user:
+        return await message.reply_text(_["general_1"])
     if user.id in BANNED_USERS:
         return await message.reply_text(_["block_1"].format(user.mention))
     await add_gban_user(user.id)
@@ -30,6 +32,8 @@ async def userdel(client, message: Message, _):
         if len(message.command) != 2:
             return await message.reply_text(_["general_1"])
     user = await extract_user(message)
+    if not user:
+        return await message.reply_text(_["general_1"])
     if user.id not in BANNED_USERS:
         return await message.reply_text(_["block_3"].format(user.mention))
     await remove_gban_user(user.id)

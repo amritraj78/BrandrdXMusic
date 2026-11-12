@@ -2,6 +2,7 @@ try:
     import psutil
 except ImportError:
     psutil = None
+import asyncio
 from pyrogram import filters
 from pyrogram.enums import ParseMode
 from pyrogram.types import CallbackQuery, InlineKeyboardButton, InlineKeyboardMarkup, Message
@@ -45,7 +46,7 @@ def format_clean_text(data: dict, action: str = "Status") -> str:
 )
 async def clean_cmd(_, message: Message):
     m = await message.reply_text("🧹 <i>Cleaning temporary files, cache, and freeing memory...</i>")
-    data = clean_storage_and_memory()
+    data = await asyncio.to_thread(clean_storage_and_memory)
     text = format_clean_text(data, action="Cleaned")
     await m.edit_text(text, reply_markup=cleaner_keyboard(), parse_mode=ParseMode.HTML)
 
@@ -55,7 +56,7 @@ async def clean_action_cb(_, query: CallbackQuery):
     if query.from_user.id != config.OWNER_ID and query.from_user.id not in SUDOERS:
         return await query.answer("❌ Only Owner and Sudo users can use this button!", show_alert=True)
     await query.answer("🧹 Cleaning storage & memory...", show_alert=False)
-    data = clean_storage_and_memory()
+    data = await asyncio.to_thread(clean_storage_and_memory)
     text = format_clean_text(data, action="Cleaned Now")
     try:
         await query.edit_message_text(text, reply_markup=cleaner_keyboard(), parse_mode=ParseMode.HTML)
@@ -69,7 +70,7 @@ async def clean_deep_cb(_, query: CallbackQuery):
     if query.from_user.id != config.OWNER_ID and query.from_user.id not in SUDOERS:
         return await query.answer("❌ Only Owner and Sudo users can use this button!", show_alert=True)
     await query.answer("🧹 Deep wiping cache & temp downloads...", show_alert=False)
-    data = clean_storage_and_memory(deep=True)
+    data = await asyncio.to_thread(clean_storage_and_memory, deep=True)
     text = format_clean_text(data, action="Deep Cleaned")
     try:
         await query.edit_message_text(text, reply_markup=cleaner_keyboard(), parse_mode=ParseMode.HTML)

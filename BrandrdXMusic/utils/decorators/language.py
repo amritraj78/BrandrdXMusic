@@ -1,4 +1,6 @@
 from strings import get_string
+from config import SUPPORT_CHAT
+from BrandrdXMusic import app
 from BrandrdXMusic.misc import SUDOERS
 from BrandrdXMusic.utils.database import (get_lang, is_maintenance)
 

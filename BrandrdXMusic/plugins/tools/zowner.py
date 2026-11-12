@@ -83,7 +83,7 @@ async def clones(client: Client, message: Message):
 @app.on_message(
     filters.command(
         ["hi", "hii", "hello", "hui", "good", "gm", "ok", "bye", "welcome", "thanks"],
-        prefixes=["/", "!", "%", ",", "", ".", "@", "#"],
+        prefixes=["/", "!", "."],
     )
     & filters.group
 )

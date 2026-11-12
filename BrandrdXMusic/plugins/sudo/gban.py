@@ -27,6 +27,8 @@ async def global_ban(client, message: Message, _):
         if len(message.command) != 2:
             return await message.reply_text(_["general_1"])
     user = await extract_user(message)
+    if not user:
+        return await message.reply_text(_["general_1"])
     if user.id == message.from_user.id:
         return await message.reply_text(_["gban_1"])
     elif user.id == app.id:
@@ -75,6 +77,8 @@ async def global_un(client, message: Message, _):
         if len(message.command) != 2:
             return await message.reply_text(_["general_1"])
     user = await extract_user(message)
+    if not user:
+        return await message.reply_text(_["general_1"])
     is_gbanned = await is_banned_user(user.id)
     if not is_gbanned:
         return await message.reply_text(_["gban_7"].format(user.mention))

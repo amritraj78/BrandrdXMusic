@@ -1,4 +1,5 @@
 import os
+import asyncio
 from PIL import Image, ImageDraw, ImageFont
 from pyrogram import *
 from pyrogram.types import *
@@ -273,12 +274,13 @@ async def greet_group(_, member: ChatMemberUpdated):
                 )
 
         # CREATE WELCOME IMAGE
-        welcomeimg = welcomepic(
+        welcomeimg = await asyncio.to_thread(
+            welcomepic,
             pic,
             user.first_name or "User",
             member.chat.title or "Group",
             user.id,
-            user.username
+            user.username,
         )
 
         # ESCAPE HTML VALUES

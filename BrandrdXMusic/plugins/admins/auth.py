@@ -22,6 +22,8 @@ async def auth(client, message: Message, _):
         if len(message.command) != 2:
             return await message.reply_text(_["general_1"])
     user = await extract_user(message)
+    if not user:
+        return await message.reply_text(_["general_1"])
     token = await int_to_alpha(user.id)
     _check = await get_authuser_names(message.chat.id)
     count = len(_check)
@@ -51,6 +53,8 @@ async def unauthusers(client, message: Message, _):
         if len(message.command) != 2:
             return await message.reply_text(_["general_1"])
     user = await extract_user(message)
+    if not user:
+        return await message.reply_text(_["general_1"])
     token = await int_to_alpha(user.id)
     deleted = await delete_authuser(message.chat.id, token)
     get = adminlist.get(message.chat.id)

@@ -35,11 +35,12 @@ async def ids(_, message):
         )
 
     else:
+        u_id = message.from_user.id if message.from_user else "Anonymous"
         text = (
             f"<b><blockquote>"
             f"👥 ɢʀᴏᴜᴘ ɴᴀᴍᴇ: {message.chat.title}\n"
             f"🆔 ɢʀᴏᴜᴘ ɪᴅ: <code>{message.chat.id}</code>\n\n"
-            f"👤 ʏᴏᴜʀ ᴜsᴇʀ ɪᴅ: <code>{message.from_user.id}</code>"
+            f"👤 ʏᴏᴜʀ ᴜsᴇʀ ɪᴅ: <code>{u_id}</code>"
             f"</blockquote></b>"
         )
 

@@ -19,6 +19,8 @@ async def useradd(client, message: Message, _):
         if len(message.command) != 2:
             return await message.reply_text(_["general_1"])
     user = await extract_user(message)
+    if not user:
+        return await message.reply_text(_["general_1"])
     if user.id in SUDOERS:
         return await message.reply_text(_["sudo_1"].format(user.mention))
     added = await add_sudo(user.id)
@@ -36,6 +38,8 @@ async def userdel(client, message: Message, _):
         if len(message.command) != 2:
             return await message.reply_text(_["general_1"])
     user = await extract_user(message)
+    if not user:
+        return await message.reply_text(_["general_1"])
     if user.id not in SUDOERS:
         return await message.reply_text(_["sudo_3"].format(user.mention))
     removed = await remove_sudo(user.id)

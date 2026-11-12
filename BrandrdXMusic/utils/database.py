@@ -29,6 +29,7 @@ userdb = mongodb.userstats
 videodb = mongodb.vipvideocalls
 chatsdbc = mongodb.chatsc  # for clone
 usersdbc = mongodb.tgusersdbc  # for clone
+chattopdb = mongodb.chattop
 
 # Shifting to memory [mongo sucks often]
 active = []
@@ -604,10 +605,17 @@ async def maintenance_on():
     return await onoffdb.insert_one({"on_off": 1})
 
 
+_served_users_cache = set()
+_served_chats_cache = set()
+
+
 async def is_served_user(user_id: int) -> bool:
+    if user_id in _served_users_cache:
+        return True
     user = await usersdb.find_one({"user_id": user_id})
     if not user:
         return False
+    _served_users_cache.add(user_id)
     return True
 
 
@@ -619,9 +627,12 @@ async def get_served_users() -> list:
 
 
 async def add_served_user(user_id: int):
+    if user_id in _served_users_cache:
+        return
     is_served = await is_served_user(user_id)
     if is_served:
         return
+    _served_users_cache.add(user_id)
     return await usersdb.insert_one({"user_id": user_id})
 
 
@@ -633,20 +644,27 @@ async def get_served_chats() -> list:
 
 
 async def is_served_chat(chat_id: int) -> bool:
+    if chat_id in _served_chats_cache:
+        return True
     chat = await chatsdb.find_one({"chat_id": chat_id})
     if not chat:
         return False
+    _served_chats_cache.add(chat_id)
     return True
 
 
 async def add_served_chat(chat_id: int):
+    if chat_id in _served_chats_cache:
+        return
     is_served = await is_served_chat(chat_id)
     if is_served:
         return
+    _served_chats_cache.add(chat_id)
     return await chatsdb.insert_one({"chat_id": chat_id})
 
 
 async def delete_served_chat(chat_id: int):
+    _served_chats_cache.discard(chat_id)
     await chatsdb.delete_one({"chat_id": chat_id})
 
 

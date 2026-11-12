@@ -17,7 +17,7 @@ from config import (
     SONG_DOWNLOAD_DURATION,
     SONG_DOWNLOAD_DURATION_LIMIT,
 )
-from BrandrdXMusic import YouTube, app
+from BrandrdXMusic import LOGGER, YouTube, app
 from BrandrdXMusic.platforms.Youtube import get_yt_title_oembed
 from BrandrdXMusic.utils.decorators.language import language, languageCB
 from BrandrdXMusic.utils.formatters import convert_bytes

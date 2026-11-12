@@ -1,4 +1,5 @@
 
+import asyncio
 import random
 import re
 import string
@@ -37,7 +38,7 @@ async def lrsearch(client, message: Message, _):
     m = await message.reply_text(_["lyrics_2"])
 
     try:
-        song = y.search_song(title, get_full_info=False)
+        song = await asyncio.to_thread(y.search_song, title, get_full_info=False)
     except (HTTPError, RequestException) as e:
         print(f"Lyrics Genius HTTP error: {e}")
         return await m.edit(

@@ -90,6 +90,85 @@ def draw_centered_text(draw, center_x, center_y, text, font, fill):
     )
 
 
+def render_couples_image(p1, p2, c1_username, c2_username, tomorrow, output_file):
+    with Image.open(p1) as source:
+        img1 = source.convert("RGBA")
+
+    with Image.open(p2) as source:
+        img2 = source.convert("RGBA")
+
+    with Image.open("BrandrdXMusic/assets/cppicbranded.jpg") as source:
+        img = source.convert("RGBA")
+
+    photo_size = 340
+    img1 = img1.resize((photo_size, photo_size), Image.Resampling.LANCZOS)
+    img2 = img2.resize((photo_size, photo_size), Image.Resampling.LANCZOS)
+
+    mask = Image.new("L", (photo_size, photo_size), 0)
+    mask_draw = ImageDraw.Draw(mask)
+    mask_draw.ellipse((0, 0, photo_size - 1, photo_size - 1), fill=255)
+
+    img1.putalpha(mask)
+    img2.putalpha(mask.copy())
+
+    img.paste(img1, (235, 316), img1)
+    img.paste(img2, (955, 316), img2)
+
+    draw = ImageDraw.Draw(img)
+
+    draw.rounded_rectangle(
+        (260, 660, 540, 720),
+        radius=24,
+        fill=(35, 0, 40, 255),
+        outline=(255, 45, 210, 255),
+        width=3,
+    )
+    draw.rounded_rectangle(
+        (975, 660, 1275, 720),
+        radius=24,
+        fill=(0, 15, 45, 255),
+        outline=(35, 160, 255, 255),
+        width=3,
+    )
+
+    name1_font = fit_font(draw, c1_username, 220, 27, True)
+    name2_font = fit_font(draw, c2_username, 240, 27, True)
+
+    draw_centered_text(draw, 400, 690, c1_username, name1_font, (255, 235, 255, 255))
+    draw_centered_text(draw, 1125, 690, c2_username, name2_font, (235, 245, 255, 255))
+
+    draw.rounded_rectangle(
+        (405, 760, 1130, 875),
+        radius=25,
+        fill=(12, 0, 28, 245),
+        outline=(140, 40, 220, 255),
+        width=3,
+    )
+
+    bottom_font_size = 40
+    bottom_font1 = fit_font(draw, c1_username, 260, bottom_font_size, True)
+    bottom_font2 = fit_font(draw, c2_username, 260, bottom_font_size, True)
+
+    draw_centered_text(draw, 570, 818, c1_username, bottom_font1, (255, 70, 220, 255))
+    draw_centered_text(draw, 755, 818, "+", get_font(42, True), (255, 255, 255, 255))
+    draw_centered_text(draw, 925, 818, c2_username, bottom_font2, (50, 190, 255, 255))
+
+    draw.rounded_rectangle(
+        (460, 885, 1080, 970),
+        radius=18,
+        fill=(10, 0, 30, 245),
+    )
+
+    date_label_font = get_font(20, True)
+    date_font = get_font(34, True)
+
+    draw_centered_text(draw, 770, 912, "NEXT COUPLES WILL BE SELECTED ON", date_label_font, (255, 255, 255, 255))
+    draw_centered_text(draw, 770, 950, tomorrow, date_font, (255, 75, 220, 255))
+
+    img.save(output_file, format="PNG")
+    return output_file
+
+
 @app.on_message(filters.command("couples"))
 async def ctest(_, message):
     cid = message.chat.id
@@ -176,187 +255,16 @@ async def ctest(_, message):
         except Exception:
             p2 = "BrandrdXMusic/assets/upic.png"
 
-        # OPEN IMAGES
-        with Image.open(p1) as source:
-            img1 = source.convert("RGBA")
-
-        with Image.open(p2) as source:
-            img2 = source.convert("RGBA")
-
-        with Image.open(
-            "BrandrdXMusic/assets/cppicbranded.jpg"
-        ) as source:
-            img = source.convert("RGBA")
-
-        # PROFILE PHOTO SIZE AND POSITIONS
-        # Coordinates are for the supplied 1536 x 1024 background.
-        photo_size = 340
-
-        img1 = img1.resize(
-            (photo_size, photo_size),
-            Image.Resampling.LANCZOS,
-        )
-        img2 = img2.resize(
-            (photo_size, photo_size),
-            Image.Resampling.LANCZOS,
-        )
-
-        # CIRCULAR MASK
-        mask = Image.new("L", (photo_size, photo_size), 0)
-        mask_draw = ImageDraw.Draw(mask)
-        mask_draw.ellipse(
-            (0, 0, photo_size - 1, photo_size - 1),
-            fill=255,
-        )
-
-        img1.putalpha(mask)
-        img2.putalpha(mask.copy())
-
-        # PASTE PROFILE PHOTOS
-        img.paste(img1, (235, 316), img1)
-        img.paste(img2, (955, 316), img2)
-
-        # DRAW ACTUAL USERNAMES AND DATE ON BACKGROUND
-        draw = ImageDraw.Draw(img)
-
-        # ---------------------------------------------
-        # FIX 1: REPLACE STATIC @User1 AND @User2 LABELS
-        # ---------------------------------------------
-
-        # Cover existing placeholder text within the two labels.
-        draw.rounded_rectangle(
-            (260, 660, 540, 720),
-            radius=24,
-            fill=(35, 0, 40, 255),
-            outline=(255, 45, 210, 255),
-            width=3,
-        )
-
-        draw.rounded_rectangle(
-            (975, 660, 1275, 720),
-            radius=24,
-            fill=(0, 15, 45, 255),
-            outline=(35, 160, 255, 255),
-            width=3,
-        )
-
-        # Actual Telegram usernames, or first name if username is absent.
-        name1_font = fit_font(
-            draw, c1_username, 220, 27, True
-        )
-        name2_font = fit_font(
-            draw, c2_username, 240, 27, True
-        )
-
-        draw_centered_text(
-            draw,
-            400,
-            690,
+        # RENDER COUPLES IMAGE IN BACKGROUND THREAD (NON-BLOCKING)
+        await asyncio.to_thread(
+            render_couples_image,
+            p1,
+            p2,
             c1_username,
-            name1_font,
-            (255, 235, 255, 255),
-        )
-
-        draw_centered_text(
-            draw,
-            1125,
-            690,
             c2_username,
-            name2_font,
-            (235, 245, 255, 255),
-        )
-
-        # ---------------------------------------------
-        # FIX 2: REPLACE STATIC COUPLE NAMES AT BOTTOM
-        # ---------------------------------------------
-
-        # Cover the old @User1 + @User2 = heart text.
-        draw.rounded_rectangle(
-            (405, 760, 1130, 875),
-            radius=25,
-            fill=(12, 0, 28, 245),
-            outline=(140, 40, 220, 255),
-            width=3,
-        )
-
-        bottom_font_size = 40
-        bottom_font1 = fit_font(
-            draw,
-            c1_username,
-            260,
-            bottom_font_size,
-            True,
-        )
-        bottom_font2 = fit_font(
-            draw,
-            c2_username,
-            260,
-            bottom_font_size,
-            True,
-        )
-
-        # Use separate colors for both partners.
-        draw_centered_text(
-            draw,
-            570,
-            818,
-            c1_username,
-            bottom_font1,
-            (255, 70, 220, 255),
-        )
-
-        draw_centered_text(
-            draw,
-            755,
-            818,
-            "+",
-            get_font(42, True),
-            (255, 255, 255, 255),
-        )
-
-        draw_centered_text(
-            draw,
-            925,
-            818,
-            c2_username,
-            bottom_font2,
-            (50, 190, 255, 255),
-        )
-
-        # ---------------------------------------------
-        # FIX 3: DYNAMIC NEXT COUPLES DATE
-        # ---------------------------------------------
-
-        # Cover the old fixed date and date label.
-        draw.rounded_rectangle(
-            (460, 885, 1080, 970),
-            radius=18,
-            fill=(10, 0, 30, 245),
-        )
-
-        date_label_font = get_font(20, True)
-        date_font = get_font(34, True)
-
-        draw_centered_text(
-            draw,
-            770,
-            912,
-            "NEXT COUPLES WILL BE SELECTED ON",
-            date_label_font,
-            (255, 255, 255, 255),
-        )
-
-        draw_centered_text(
-            draw,
-            770,
-            950,
             tomorrow,
-            date_font,
-            (255, 75, 220, 255),
+            output_file,
         )
-
-        # SAVE IMAGE
-        img.save(output_file, format="PNG")
 
         # COLOURFUL CAPTION
         TXT = f"""<b><blockquote>

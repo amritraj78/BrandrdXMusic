@@ -26,24 +26,31 @@ class RessoAPI:
                     return False
                 html = await response.text()
         soup = BeautifulSoup(html, "html.parser")
+        title = None
+        des = ""
         for tag in soup.find_all("meta"):
             if tag.get("property", None) == "og:title":
                 title = tag.get("content", None)
             if tag.get("property", None) == "og:description":
-                des = tag.get("content", None)
+                des = tag.get("content", "")
                 try:
                     des = des.split("·")[0]
                 except:
                     pass
-        if des == "":
-            return
-        results = VideosSearch(title, limit=1)
-        for result in (await results.next())["result"]:
-            title = result["title"]
-            ytlink = result["link"]
-            vidid = result["id"]
-            duration_min = result["duration"]
-            thumbnail = result["thumbnails"][0]["url"].split("?")[0]
+        query = title or des
+        if not query:
+            return False
+        results = VideosSearch(query, limit=1)
+        res_data = (await results.next()).get("result") or []
+        if not res_data:
+            return False
+        result = res_data[0]
+        title = result.get("title", "Track")
+        ytlink = result.get("link", "")
+        vidid = result.get("id", "")
+        duration_min = result.get("duration", "0:00")
+        thumbs = result.get("thumbnails", [{}])
+        thumbnail = thumbs[0].get("url", "").split("?")[0] if thumbs else ""
         track_details = {
             "title": title,
             "link": ytlink,
