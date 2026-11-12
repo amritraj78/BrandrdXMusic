@@ -359,8 +359,9 @@ async def play_commnd(
                     _["play_13"],
                     reply_markup=InlineKeyboardMarkup(buttons),
                 )
+        st_res = False
         try:
-            await stream(
+            st_res = await stream(
                 _,
                 mystic,
                 user_id,
@@ -377,9 +378,20 @@ async def play_commnd(
             LOGGER(__name__).error("play_commnd stream error: %s", e, exc_info=True)
             ex_type = type(e).__name__
             err = e if ex_type == "AssistantErr" else _["general_2"].format(ex_type)
-            return await mystic.edit_text(err)
-        await mystic.delete()
-        return await play_logs(message, streamtype=streamtype)
+            try:
+                return await mystic.edit_text(err)
+            except Exception:
+                try:
+                    return await message.reply_text(err)
+                except Exception:
+                    return
+        if st_res is not False:
+            try:
+                await mystic.delete()
+            except Exception:
+                pass
+            return await play_logs(message, streamtype=streamtype)
+        return
     else:
         if plist_type:
             ran_hash = "".join(
@@ -488,8 +500,9 @@ async def play_music(client, CallbackQuery, _):
         )
     video = True if mode == "v" else None
     ffplay = True if fplay == "f" else None
+    st_res = False
     try:
-        await stream(
+        st_res = await stream(
             _,
             mystic,
             CallbackQuery.from_user.id,
@@ -505,8 +518,19 @@ async def play_music(client, CallbackQuery, _):
         LOGGER(__name__).error("play callback stream error: %s", e, exc_info=True)
         ex_type = type(e).__name__
         err = e if ex_type == "AssistantErr" else _["general_2"].format(ex_type)
-        return await mystic.edit_text(err)
-    return await mystic.delete()
+        try:
+            return await mystic.edit_text(err)
+        except Exception:
+            try:
+                return await CallbackQuery.message.reply_text(err)
+            except Exception:
+                return
+    if st_res is not False:
+        try:
+            await mystic.delete()
+        except Exception:
+            pass
+    return
 
 
 @app.on_callback_query(filters.regex("AnonymousAdmin") & ~BANNED_USERS)

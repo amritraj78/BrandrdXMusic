@@ -61,6 +61,19 @@ def extract_video_id(link: str) -> str:
     return link
 
 
+def get_yt_title_oembed(vid: str) -> str:
+    if not vid:
+        return ""
+    try:
+        url = f"https://www.youtube.com/oembed?url=https://www.youtube.com/watch?v={vid}&format=json"
+        req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
+        with urllib.request.urlopen(req, timeout=5) as resp:
+            data = json.loads(resp.read().decode("utf-8"))
+            return data.get("title", "")
+    except Exception:
+        return ""
+
+
 def download_from_saavn_sync(query: str, file_path: str) -> bool:
     try:
         from pyDes import des, ECB, PAD_PKCS5
@@ -177,7 +190,10 @@ async def download_song(link: str, title: str = None) -> str:
         LOGGER(__name__).warning("yt-dlp YouTube download failed: %s", e)
 
     # 3. Fallback: SoundCloud Search & Download
-    search_term = title or video_id
+    search_term = title or ""
+    if not search_term or search_term == "Unknown Track":
+        oembed_ttl = get_yt_title_oembed(video_id)
+        search_term = oembed_ttl if oembed_ttl else video_id
     if search_term and search_term != "Unknown Track":
         try:
             loop = asyncio.get_event_loop()
@@ -356,6 +372,20 @@ async def download_video(link: str, title: str = None) -> str:
     except Exception as e:
         LOGGER(__name__).error("yt-dlp video stream URL extraction failed: %s", e)
 
+    # 4. Fallback: Download audio so playback never fails
+    search_term = title or ""
+    if not search_term or search_term == "Unknown Track":
+        oembed_ttl = get_yt_title_oembed(video_id)
+        search_term = oembed_ttl if oembed_ttl else video_id
+    LOGGER(__name__).info("Video download failed, attempting audio fallback for: %s", search_term)
+    try:
+        audio_file = await download_song(link, title=search_term)
+        if audio_file and os.path.exists(audio_file) and os.path.getsize(audio_file) > 0:
+            LOGGER(__name__).info("Audio fallback succeeded for video request: %s", audio_file)
+            return audio_file
+    except Exception as e:
+        LOGGER(__name__).warning("Audio fallback in download_video failed: %s", e)
+
     return None
 
 
@@ -436,9 +466,11 @@ class YouTubeAPI:
         except Exception as e:
             LOGGER(__name__).warning("yt-dlp fallback failed in details: %s", e)
 
-        # 3. Final default fallback
+        # 3. Final default fallback with oembed
         vid = extract_video_id(link) or "unknown"
-        return "Unknown Track", "0:00", 0, f"https://img.youtube.com/vi/{vid}/hqdefault.jpg", vid
+        oembed_ttl = get_yt_title_oembed(vid)
+        ttl = oembed_ttl if oembed_ttl else "Unknown Track"
+        return ttl, "0:00", 0, f"https://img.youtube.com/vi/{vid}/hqdefault.jpg", vid
 
     async def title(self, link: str, videoid: Union[bool, str] = None):
         t, _, _, _, _ = await self.details(link, videoid)
@@ -559,10 +591,12 @@ class YouTubeAPI:
         except Exception as e:
             LOGGER(__name__).warning("yt-dlp fallback failed in track: %s", e)
 
-        # 3. Final fallback
+        # 3. Final fallback with oembed
         vid = extract_video_id(link) or "unknown"
+        oembed_ttl = get_yt_title_oembed(vid)
+        ttl = oembed_ttl if oembed_ttl else "Unknown Track"
         return {
-            "title": "Unknown Track",
+            "title": ttl,
             "link": f"https://www.youtube.com/watch?v={vid}",
             "vidid": vid,
             "duration_min": "0:00",

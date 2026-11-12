@@ -187,12 +187,31 @@ async def stream(
             file_path, direct = await YouTube.download(
                 vidid, mystic, videoid=True, video=status, title=title
             )
+            if not file_path and status:
+                LOGGER(__name__).warning("Video download returned None, falling back to audio...")
+                file_path, direct = await YouTube.download(
+                    vidid, mystic, videoid=True, video=None, title=title
+                )
+                status = None
+                video = None
         except Exception as e:
             LOGGER(__name__).error("stream: YouTube.download error: %s", e, exc_info=True)
-            return await mystic.edit_text(_["play_3"])
+            try:
+                await mystic.edit_text(_["play_3"])
+            except Exception:
+                pass
+            return False
         if not file_path:
             LOGGER(__name__).error("stream: YouTube.download returned None for %s", vidid)
-            return await mystic.edit_text(_["play_3"])
+            try:
+                await mystic.edit_text(_["play_3"])
+            except Exception:
+                pass
+            return False
+
+        if file_path and (file_path.endswith(".mp3") or file_path.endswith(".m4a")):
+            status = None
+            video = None
         if await is_active_chat(chat_id):
             await put_queue(
                 chat_id,
@@ -254,6 +273,7 @@ async def stream(
 
             db[chat_id][0]["mystic"] = run
             db[chat_id][0]["markup"] = "stream"
+            return True
     elif streamtype == "soundcloud":
         file_path = result["filepath"]
         title = result["title"]

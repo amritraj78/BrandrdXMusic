@@ -2,6 +2,7 @@ import os
 import re
 import yt_dlp
 from pyrogram import Client, filters
+from pyrogram.enums import ChatAction
 from pyrogram.types import (
     CallbackQuery,
     InlineKeyboardButton,
@@ -17,6 +18,7 @@ from config import (
     SONG_DOWNLOAD_DURATION_LIMIT,
 )
 from BrandrdXMusic import YouTube, app
+from BrandrdXMusic.platforms.Youtube import get_yt_title_oembed
 from BrandrdXMusic.utils.decorators.language import language, languageCB
 from BrandrdXMusic.utils.formatters import convert_bytes
 from BrandrdXMusic.utils.inline.song import song_markup
@@ -54,6 +56,7 @@ async def song_commad_private(client, message: Message, _):
             caption=_["song_4"].format(title),
             reply_markup=InlineKeyboardMarkup(buttons),
         )
+        return
     else:
         if len(message.command) < 2:
             return await message.reply_text(_["song_2"])
@@ -231,6 +234,10 @@ async def song_download_cb(client, callback_query: CallbackQuery, _) :
     except Exception:
         title = "Track"
         duration_sec = 0
+    if not title or title == "Track":
+        oembed_ttl = get_yt_title_oembed(vidid)
+        if oembed_ttl:
+            title = oembed_ttl
     title = re.sub(r"\W+", " ", title)
     try:
         thumb_image_path = await callback_query.message.download()
@@ -262,16 +269,32 @@ async def song_download_cb(client, callback_query: CallbackQuery, _) :
             caption=title,
             supports_streaming=True,
         )
-        await mystic.edit_text(_["song_11"])
-        await app.send_chat_action(
-            chat_id=callback_query.message.chat.id,
-            action="upload_video",
-        )
+        try:
+            await mystic.edit_text(_["song_11"])
+        except Exception:
+            pass
+        try:
+            await app.send_chat_action(
+                chat_id=callback_query.message.chat.id,
+                action=ChatAction.UPLOAD_VIDEO,
+            )
+        except Exception:
+            pass
         try:
             await callback_query.edit_message_media(media=med)
         except Exception as e:
-            LOGGER(__name__).error("upload video error: %s", e)
-            return await mystic.edit_text(_["song_10"])
+            LOGGER(__name__).warning("edit_message_media video failed: %s, falling back to send_video", e)
+            try:
+                await app.send_video(
+                    chat_id=callback_query.message.chat.id,
+                    video=file_path,
+                    caption=title,
+                    supports_streaming=True,
+                )
+                await mystic.delete()
+            except Exception as e2:
+                LOGGER(__name__).error("send_video fallback error: %s", e2)
+                return await mystic.edit_text(_["song_10"])
         try:
             if os.path.exists(file_path):
                 os.remove(file_path)
@@ -298,16 +321,33 @@ async def song_download_cb(client, callback_query: CallbackQuery, _) :
             title=title,
             performer="BrandrdXMusic",
         )
-        await mystic.edit_text(_["song_11"])
-        await app.send_chat_action(
-            chat_id=callback_query.message.chat.id,
-            action="upload_audio",
-        )
+        try:
+            await mystic.edit_text(_["song_11"])
+        except Exception:
+            pass
+        try:
+            await app.send_chat_action(
+                chat_id=callback_query.message.chat.id,
+                action=ChatAction.UPLOAD_AUDIO,
+            )
+        except Exception:
+            pass
         try:
             await callback_query.edit_message_media(media=med)
         except Exception as e:
-            LOGGER(__name__).error("upload audio error: %s", e)
-            return await mystic.edit_text(_["song_10"])
+            LOGGER(__name__).warning("edit_message_media audio failed: %s, falling back to send_audio", e)
+            try:
+                await app.send_audio(
+                    chat_id=callback_query.message.chat.id,
+                    audio=filename,
+                    caption=title,
+                    title=title,
+                    performer="BrandrdXMusic",
+                )
+                await mystic.delete()
+            except Exception as e2:
+                LOGGER(__name__).error("send_audio fallback error: %s", e2)
+                return await mystic.edit_text(_["song_10"])
         try:
             if os.path.exists(filename):
                 os.remove(filename)
