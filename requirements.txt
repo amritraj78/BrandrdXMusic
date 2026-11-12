@@ -24,3 +24,4 @@ ntgcalls==3.0.3
 lyricsgenius==3.0.0
 requests
 pyDes==2.0.1
+six
