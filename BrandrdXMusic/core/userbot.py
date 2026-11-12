@@ -1,14 +1,17 @@
 import asyncio
 from os import getenv
 
-from dotenv import load_dotenv
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except ImportError:
+    pass
+
 from pyrogram import Client, errors, filters
 from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup, Message
 
 import config
 from ..logging import LOGGER
-
-load_dotenv()
 
 assistants = []
 assistantids = []

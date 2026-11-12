@@ -59,13 +59,23 @@ async def alpha_to_int(user_id_alphabet: str) -> int:
 
 
 def time_to_seconds(time):
-    stringt = str(time)
-    return sum(int(x) * 60**i for i, x in enumerate(reversed(stringt.split(":"))))
+    stringt = str(time).strip()
+    if not stringt or stringt == "-":
+        return 0
+    try:
+        return sum(int(x) * 60**i for i, x in enumerate(reversed(stringt.split(":"))))
+    except Exception:
+        return 0
 
 
 def seconds_to_min(seconds):
     if seconds is not None:
-        seconds = int(seconds)
+        try:
+            seconds = int(seconds)
+        except Exception:
+            return "00:00"
+        if seconds <= 0:
+            return "00:00"
         d, h, m, s = (
             seconds // (3600 * 24),
             seconds // 3600 % 24,
@@ -80,7 +90,7 @@ def seconds_to_min(seconds):
             return "{:02d}:{:02d}".format(m, s)
         elif s > 0:
             return "00:{:02d}".format(s)
-    return "-"
+    return "00:00"
 
 
 def speed_converter(seconds, speed):

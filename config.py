@@ -2,10 +2,19 @@ import os
 import re
 from os import getenv
 
-from dotenv import load_dotenv
-from pyrogram import filters
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except ImportError:
+    if os.path.exists(".env"):
+        with open(".env", "r", encoding="utf-8") as _f:
+            for _line in _f:
+                _line = _line.strip()
+                if _line and not _line.startswith("#") and "=" in _line:
+                    _k, _v = _line.split("=", 1)
+                    os.environ.setdefault(_k.strip(), _v.strip().strip("'\""))
 
-load_dotenv()
+from pyrogram import filters
 
 # Get this value from my.telegram.org/apps
 API_ID = int(getenv("API_ID", 0)) if getenv("API_ID") else None

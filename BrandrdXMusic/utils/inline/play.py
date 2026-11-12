@@ -1,11 +1,21 @@
 
 import math
 import config
-from BrandrdXMusic import app
 
 from pyrogram.enums import ButtonStyle
 from pyrogram.types import InlineKeyboardButton, WebAppInfo
-from BrandrdXMusic.utils.formatters import time_to_seconds
+
+try:
+    from BrandrdXMusic.utils.formatters import time_to_seconds
+except Exception:
+    def time_to_seconds(time):
+        stringt = str(time).strip()
+        if not stringt or stringt == "-":
+            return 0
+        try:
+            return sum(int(x) * 60**i for i, x in enumerate(reversed(stringt.split(":"))))
+        except Exception:
+            return 0
 
 
 COLORS = (ButtonStyle.PRIMARY, ButtonStyle.SUCCESS, ButtonStyle.DANGER)
