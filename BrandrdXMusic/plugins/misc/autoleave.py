@@ -53,7 +53,7 @@ async def auto_end():
     """Monitors all active voice chats every 15s. If only assistant remains in VC,
     starts a 2-minute timer. If no human rejoins within 2 minutes, leaves VC
     to save server RAM and Koyeb bandwidth."""
-    while not await asyncio.sleep(15):
+    while not await asyncio.sleep(30):
         try:
             active_chats = await get_active_chats()
         except Exception:

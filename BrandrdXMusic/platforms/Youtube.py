@@ -23,6 +23,8 @@ COMMON_YTDL_OPTS = {
     "nocheckcertificate": True,
     "quiet": True,
     "no_warnings": True,
+    "socket_timeout": 8,
+    "retries": 1,
     "extractor_args": {
         "youtube": {
             "player_client": ["android", "ios", "mweb"],
@@ -198,6 +200,7 @@ def get_sc_direct_stream_url(search_term: str):
         "nocheckcertificate": True,
         "quiet": True,
         "no_warnings": True,
+        "socket_timeout": 8,
     }
     try:
         with yt_dlp.YoutubeDL(sc_opts) as ydl:
@@ -338,6 +341,7 @@ async def download_song(link: str, title: str = None, direct_stream: bool = Fals
                     "nocheckcertificate": True,
                     "quiet": True,
                     "no_warnings": True,
+                    "socket_timeout": 8,
                     "prefer_ffmpeg": True,
                     "postprocessors": [
                         {

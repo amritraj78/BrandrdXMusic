@@ -2,7 +2,7 @@ import asyncio
 import os
 
 from pyrogram import filters
-from pyrogram.errors import FloodWait
+from pyrogram.errors import FloodWait, MessageNotModified
 from pyrogram.types import CallbackQuery, InputMediaPhoto, Message
 
 import config
@@ -101,7 +101,7 @@ async def get_queue(client, message: Message, _):
     if DUR != "Unknown":
         try:
             while db[chat_id][0]["vidid"] == videoid:
-                await asyncio.sleep(5)
+                await asyncio.sleep(7)
                 if await is_active_chat(chat_id):
                     if basic[videoid]:
                         if await is_music_playing(chat_id):
@@ -115,7 +115,7 @@ async def get_queue(client, message: Message, _):
                                     db[chat_id][0]["dur"],
                                 )
                                 await mystic.edit_reply_markup(reply_markup=buttons)
-                            except FloodWait:
+                            except (FloodWait, MessageNotModified):
                                 pass
                         else:
                             pass
@@ -243,7 +243,7 @@ async def queue_back(client, CallbackQuery: CallbackQuery, _):
     if DUR != "Unknown":
         try:
             while db[chat_id][0]["vidid"] == videoid:
-                await asyncio.sleep(5)
+                await asyncio.sleep(7)
                 if await is_active_chat(chat_id):
                     if basic[videoid]:
                         if await is_music_playing(chat_id):
@@ -257,7 +257,7 @@ async def queue_back(client, CallbackQuery: CallbackQuery, _):
                                     db[chat_id][0]["dur"],
                                 )
                                 await mystic.edit_reply_markup(reply_markup=buttons)
-                            except FloodWait:
+                            except (FloodWait, MessageNotModified):
                                 pass
                         else:
                             pass

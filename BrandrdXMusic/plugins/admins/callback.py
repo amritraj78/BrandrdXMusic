@@ -1,6 +1,8 @@
 
 import asyncio
+import time
 from pyrogram import filters
+from pyrogram.errors import FloodWait, MessageNotModified
 from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 
 from BrandrdXMusic import YouTube, app
@@ -45,6 +47,7 @@ checker = {}
 upvoters = {}
 current_volume = {}
 wrong = {}
+last_timer_edit = {}
 
 
 @app.on_callback_query(filters.regex("ADMIN") & ~BANNED_USERS)
@@ -425,8 +428,12 @@ async def del_back_playlist(client, CallbackQuery, _):
 
 
 async def markup_timer():
-    while not await asyncio.sleep(1):
-        active_chats = await get_active_chats()
+    while not await asyncio.sleep(7):
+        try:
+            active_chats = await get_active_chats()
+        except Exception:
+            continue
+        now = time.time()
         for chat_id in active_chats:
             try:
                 if not await is_music_playing(chat_id):
@@ -443,10 +450,12 @@ async def markup_timer():
                     continue
                 if wrong.get(chat_id, {}).get(mystic.id) is False:
                     continue
+                if now - last_timer_edit.get(mystic.id, 0) < 6.5:
+                    continue
                 try:
                     language = await get_lang(chat_id)
                     _ = get_string(language)
-                except:
+                except Exception:
                     _ = get_string("en")
                 buttons = (
                     stream_markup_timer(
@@ -467,8 +476,18 @@ async def markup_timer():
                 await mystic.edit_reply_markup(
                     reply_markup=InlineKeyboardMarkup(buttons)
                 )
+                last_timer_edit[mystic.id] = now
+            except FloodWait as fw:
+                last_timer_edit[mystic.id] = time.time() + fw.value
+            except MessageNotModified:
+                last_timer_edit[mystic.id] = time.time()
             except Exception:
                 continue
 
+        # Prune old cache if oversized
+        if len(last_timer_edit) > 200:
+            last_timer_edit.clear()
+
 
 asyncio.create_task(markup_timer())
+
